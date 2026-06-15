@@ -23,9 +23,12 @@ def compute_agreement(result: ACSResult) -> float:
 
     mean = sum(scores) / len(scores)
     variance = sum((s - mean) ** 2 for s in scores) / len(scores)
+    std = variance ** 0.5
 
-    # Convert variance to agreement score (max variance at extremes ~0.25)
-    agreement = max(0.0, 1.0 - (variance / 0.25))
+    # Convert spread to agreement score. Std-dev is in the same units as the
+    # sub-scores; its theoretical max on [0, 1] is 0.5 (mass split at the
+    # extremes), so std / 0.5 maps total divergence -> 0 and full agreement -> 1.
+    agreement = max(0.0, 1.0 - (std / 0.5))
     return round(agreement, 4)
 
 

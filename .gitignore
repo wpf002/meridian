@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment
+.env
+
+# Local database
+db/*.db
+
+# Logs / processed data
+logs/
+data/processed/
+
+# OS
+.DS_Store

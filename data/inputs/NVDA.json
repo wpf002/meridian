@@ -1,0 +1,44 @@
+{
+  "signals": [
+    {
+      "signal_type": "macro",
+      "direction": "bullish",
+      "magnitude": 0.8,
+      "confidence": 0.9,
+      "source": "fed_policy",
+      "raw_payload": {"note": "Rate-cut path supportive of long-duration growth equities"}
+    },
+    {
+      "signal_type": "macro",
+      "direction": "bullish",
+      "magnitude": 0.7,
+      "confidence": 0.8,
+      "source": "ai_capex_cycle",
+      "raw_payload": {"note": "Hyperscaler capex guidance raised across the board"}
+    },
+    {
+      "signal_type": "tactical",
+      "direction": "bullish",
+      "magnitude": 0.85,
+      "confidence": 0.9,
+      "source": "momentum",
+      "raw_payload": {"note": "Breakout above prior high on expanding volume"}
+    },
+    {
+      "signal_type": "sentiment",
+      "direction": "bullish",
+      "magnitude": 0.75,
+      "confidence": 0.85,
+      "source": "analyst_revisions",
+      "raw_payload": {"note": "Net positive estimate revisions, multiple PT raises"}
+    },
+    {
+      "signal_type": "structural_risk",
+      "direction": "bearish",
+      "magnitude": 0.2,
+      "confidence": 0.7,
+      "source": "balance_sheet",
+      "raw_payload": {"note": "Net cash position, clean accruals, low leverage"}
+    }
+  ]
+}

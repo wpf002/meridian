@@ -16,9 +16,12 @@ import argparse
 from pathlib import Path
 from rich.console import Console
 
-from config.settings import DB_PATH
+from config.settings import DB_PATH, DATA_INPUT_PATH
 from governance.model_registry import ModelRegistry
+from core.pipeline import MeridianPipeline
+from core.signal_loader import load_signals_for, signal_file_path
 from interface.chat import run_chat
+from interface.render import render_scan
 
 console = Console()
 
@@ -55,12 +58,34 @@ def ensure_baseline_model():
 
 class MeridianCore:
     """
-    Stub command dispatcher. Phase 1 scaffold.
-    Each cmd_* method will be wired to the full pipeline in subsequent phases.
+    Command dispatcher. cmd_scan is wired to the full pipeline (Phase 1).
+    Remaining cmd_* methods are wired in subsequent phases.
     """
 
+    def __init__(self):
+        # Built lazily so the DB/model registry exist before the pipeline
+        # snapshots active weights.
+        self._pipeline = None
+
+    @property
+    def pipeline(self) -> MeridianPipeline:
+        if self._pipeline is None:
+            self._pipeline = MeridianPipeline()
+        return self._pipeline
+
     def cmd_scan(self, ticker: str):
-        console.print(f"[cyan]SCAN[/cyan] {ticker} — Pipeline not yet wired. Phase 1 in progress.")
+        signals, error = load_signals_for(ticker)
+        if error:
+            console.print(f"[red]{error}[/red]")
+            console.print(
+                f"[dim]Provide manual signals at "
+                f"{signal_file_path(ticker)} — a JSON array of signal dicts "
+                f"(signal_type, direction, magnitude, confidence, source).[/dim]"
+            )
+            return
+
+        scan = self.pipeline.run_entity(ticker, signals)
+        render_scan(scan)
 
     def cmd_recommend(self):
         console.print("[cyan]RECOMMEND[/cyan] — Pipeline not yet wired. Phase 2 in progress.")
@@ -82,10 +107,12 @@ class MeridianCore:
         active = registry.get_active()
         version = active["version"] if active else "none"
         weights = active["weights"] if active else {}
+        thresholds = active["thresholds"] if active else {}
         console.print(f"[bold]MERIDIAN STATUS[/bold]")
         console.print(f"  Model Version : {version}")
         console.print(f"  DB Path       : {DB_PATH}")
         console.print(f"  Weights       : {weights}")
+        console.print(f"  Thresholds    : {thresholds}")
 
 
 def main():
