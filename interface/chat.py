@@ -32,6 +32,8 @@ def print_help():
   meridian recommend            Top-ranked assets
   meridian build portfolio      Construct portfolio allocation
   meridian compare <A> vs <B>   Compare two assets
+  meridian scenarios            List available stress scenarios
+  meridian scenario <NAME>      Run a scenario impact report
   meridian brief                Daily intelligence brief
   meridian alerts               Active alerts
   meridian status               System status
@@ -82,6 +84,13 @@ def run_chat(meridian_core):
                 meridian_core.cmd_compare(parts[0].strip().upper(), parts[1].strip().upper())
             else:
                 console.print("[red]Usage: meridian compare <TICKER_A> vs <TICKER_B>[/red]")
+
+        elif cmd == "meridian scenarios":
+            meridian_core.cmd_scenarios()
+
+        elif cmd.startswith("meridian scenario "):
+            name = raw[len("meridian scenario "):].strip().strip('"').strip("'")
+            meridian_core.cmd_scenario(name)
 
         elif cmd == "meridian brief":
             meridian_core.cmd_brief()

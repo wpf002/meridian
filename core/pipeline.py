@@ -138,9 +138,13 @@ class MeridianPipeline:
         """
         run_id = str(uuid.uuid4())
 
+        # Default the scanned entity onto each raw signal so callers need not
+        # repeat it (an explicit entity on the signal still wins).
+        stamped = [{"entity": entity.upper(), **r} for r in raw_signals]
+
         # Fresh harmonizer per run so error state stays scoped to this scan.
         harmonizer = SignalHarmonizer()
-        signals = harmonizer.harmonize_batch(raw_signals)
+        signals = harmonizer.harmonize_batch(stamped)
 
         result = self.scoring.score(entity, signals)
         prioritized = self.priority.prioritize([result])[0]

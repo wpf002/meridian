@@ -24,8 +24,12 @@ from classification.asset_universe import AssetUniverse
 from classification.seed_universe import seed_universe
 from portfolio.constructor import PortfolioConstructor
 from meta_learning.performance_tracker import PerformanceTracker
+from sandbox.scenario_builder import get_scenario, list_scenarios
+from sandbox.simulator import Simulator
 from interface.chat import run_chat
-from interface.render import render_scan, render_recommend, render_portfolio, render_compare
+from interface.render import (
+    render_scan, render_recommend, render_portfolio, render_compare, render_scenario,
+)
 
 console = Console()
 
@@ -147,6 +151,38 @@ class MeridianCore:
         scan_a = self.pipeline.run_entity(ticker_a, signals_a)
         scan_b = self.pipeline.run_entity(ticker_b, signals_b)
         render_compare(scan_a, scan_b)
+
+    def cmd_scenarios(self):
+        console.print("[bold]Available scenarios:[/bold]")
+        for s in list_scenarios():
+            console.print(f"  [cyan]{s.name}[/cyan] — {s.description} [dim]({s.regime})[/dim]")
+
+    def cmd_scenario(self, name: str):
+        scenario = get_scenario(name)
+        if scenario is None:
+            console.print(f"[red]Unknown scenario:[/red] {name}")
+            self.cmd_scenarios()
+            return
+
+        universe = AssetUniverse()
+        universe_data = []
+        for asset in universe.get_all():
+            signals, error = load_signals_for(asset["ticker"])
+            if error:
+                continue
+            universe_data.append({
+                "ticker": asset["ticker"],
+                "sector": asset["sector"],
+                "asset_class": asset["asset_class"],
+                "signals": signals,
+            })
+
+        if not universe_data:
+            console.print("[yellow]No assets with signals — cannot run a scenario.[/yellow]")
+            return
+
+        report = Simulator(pipeline=self.pipeline).run_scenario(scenario, universe_data)
+        render_scenario(report)
 
     def cmd_brief(self):
         console.print("[cyan]BRIEF[/cyan] — Pipeline not yet wired. Phase 3 in progress.")

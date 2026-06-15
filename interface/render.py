@@ -12,6 +12,7 @@ from rich import box
 
 from core.pipeline import ScanResult
 from portfolio.constructor import Portfolio
+from sandbox.simulator import ScenarioReport
 
 console = Console()
 
@@ -216,3 +217,66 @@ def render_compare(scan_a: ScanResult, scan_b: ScanResult) -> None:
     )
     console.print(table)
     console.print()
+
+
+def _delta(value: float) -> str:
+    """Color a signed delta: green up, red down."""
+    if value > 0.0005:
+        return f"[green]{value:+.3f}[/green]"
+    if value < -0.0005:
+        return f"[red]{value:+.3f}[/red]"
+    return f"[dim]{value:+.3f}[/dim]"
+
+
+def render_scenario(report: ScenarioReport) -> None:
+    """Render a full scenario impact report: header, per-entity table, sleeve drawdown."""
+    pb, ps = report.portfolio_baseline_acs, report.portfolio_base_acs
+    header = (
+        f"[bold white]{report.scenario_name}[/bold white]\n"
+        f"Stressed regime: [yellow]{report.scenario_regime}[/yellow]   "
+        f"Current regime (inferred): [cyan]{report.current_regime}[/cyan]\n"
+        f"Portfolio ACS (avg): {pb:.3f} → {ps:.3f}   {_delta(ps - pb)}   "
+        f"Classification downgrades: [red]{report.downgrades}[/red]"
+    )
+    console.print(Panel(header, title="MERIDIAN SCENARIO", box=box.ROUNDED, expand=False))
+
+    # Per-entity impact (sorted by base-case delta, worst hit first)
+    table = Table(title="Per-asset impact", box=box.SIMPLE_HEAVY)
+    table.add_column("Ticker", style="bold")
+    table.add_column("Sleeve", style="dim")
+    table.add_column("Base ACS", justify="right")
+    table.add_column("→ Scenario", justify="right")
+    table.add_column("Δ (base)", justify="right")
+    table.add_column("Best / Worst", justify="center")
+    table.add_column("Classification", justify="center")
+
+    for e in sorted(report.entities, key=lambda x: x.acs_delta):
+        cls_cell = _cls(e.baseline_classification)
+        if e.classification_changed:
+            cls_cell += f" → {_cls(e.scenario_classification)}"
+        table.add_row(
+            e.entity,
+            e.sleeve,
+            f"{e.baseline_acs:.3f}",
+            f"{e.base_acs:.3f}",
+            _delta(e.acs_delta),
+            f"[green]{e.best_acs:.2f}[/green] / [red]{e.worst_acs:.2f}[/red]",
+            cls_cell,
+        )
+    console.print(table)
+
+    # Sleeve drawdown
+    sleeve_tbl = Table(title="Sleeve drawdown (worst case)", box=box.SIMPLE, title_justify="left")
+    sleeve_tbl.add_column("Sleeve", style="bold")
+    sleeve_tbl.add_column("Assets", justify="right")
+    sleeve_tbl.add_column("Avg Δ (base)", justify="right")
+    sleeve_tbl.add_column("Worst drawdown", justify="right")
+    for s in report.sleeve_impacts:
+        sleeve_tbl.add_row(
+            s.sleeve.capitalize(),
+            str(s.asset_count),
+            _delta(s.avg_base_delta),
+            _delta(s.worst_drawdown),
+        )
+    console.print(sleeve_tbl)
+    console.print(f"  [dim]run_id: {report.run_id}[/dim]\n")
