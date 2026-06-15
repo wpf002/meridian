@@ -1,0 +1,9 @@
+{
+  "signals": [
+    {"signal_type": "macro", "direction": "bullish", "magnitude": 0.8, "confidence": 0.85, "source": "ad_cycle", "raw_payload": {"note": "Digital ad spend recovering; cloud profitable"}},
+    {"signal_type": "tactical", "direction": "bullish", "magnitude": 0.75, "confidence": 0.85, "source": "momentum", "raw_payload": {"note": "Constructive trend, breadth improving"}},
+    {"signal_type": "sentiment", "direction": "bullish", "magnitude": 0.6, "confidence": 0.75, "source": "analyst_revisions", "raw_payload": {"note": "Positive on Gemini roadmap"}},
+    {"signal_type": "sentiment", "direction": "neutral", "magnitude": 0.5, "confidence": 0.7, "source": "regulatory_news", "raw_payload": {"note": "Antitrust overhang caps upside narrative"}},
+    {"signal_type": "structural_risk", "direction": "bearish", "magnitude": 0.25, "confidence": 0.8, "source": "balance_sheet", "raw_payload": {"note": "Net cash, durable cash flows"}}
+  ]
+}

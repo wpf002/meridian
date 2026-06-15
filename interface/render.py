@@ -11,6 +11,7 @@ from rich.panel import Panel
 from rich import box
 
 from core.pipeline import ScanResult
+from portfolio.constructor import Portfolio
 
 console = Console()
 
@@ -96,3 +97,122 @@ def render_scan(scan: ScanResult) -> None:
 
     console.print(f"\n  [dim]Rationale:[/dim] {scan.rationale}")
     console.print(f"  [dim]run_id: {scan.run_id}[/dim]\n")
+
+
+def _cls(classification: str) -> str:
+    style = _CLASSIFICATION_STYLE.get(classification, "white")
+    return f"[{style}]{classification}[/{style}]"
+
+
+def _conv(label: str) -> str:
+    style = _CONVICTION_STYLE.get(label, "white")
+    return f"[{style}]{label}[/{style}]"
+
+
+def _report_skipped(skipped: list) -> None:
+    if skipped:
+        names = ", ".join(t for t, _ in skipped)
+        console.print(
+            f"[dim]{len(skipped)} asset(s) skipped (no signal file): {names}[/dim]\n"
+        )
+
+
+def render_recommend(scans: list[ScanResult], skipped: list = None) -> None:
+    """Ranked universe table: rank, ticker, ACS, tier, classification, conviction, flags."""
+    if not scans:
+        console.print("[yellow]No assets scored — provide signal files for the universe.[/yellow]")
+        _report_skipped(skipped or [])
+        return
+
+    table = Table(title="MERIDIAN — Universe Recommendations", box=box.SIMPLE_HEAVY)
+    table.add_column("#", justify="right", style="dim")
+    table.add_column("Ticker", style="bold")
+    table.add_column("ACS", justify="right")
+    table.add_column("Tier", justify="center")
+    table.add_column("Classification")
+    table.add_column("Conviction")
+    table.add_column("Action")
+    table.add_column("Flags", style="yellow")
+
+    for i, s in enumerate(scans, start=1):
+        action_style = _ACTION_STYLE.get(s.decision.action, "white")
+        table.add_row(
+            str(i),
+            s.entity,
+            f"{s.result.acs:.3f}",
+            str(s.prioritized.tier),
+            _cls(s.classification),
+            _conv(s.confidence["conviction"]),
+            f"[{action_style}]{s.decision.action}[/{action_style}]",
+            ", ".join(s.decision.flags) if s.decision.flags else "[dim]—[/dim]",
+        )
+
+    console.print(table)
+    _report_skipped(skipped or [])
+
+
+def render_portfolio(portfolio: Portfolio) -> None:
+    """Sleeve allocation table grouped by sleeve, with per-sleeve and total weights."""
+    sleeves = portfolio.by_sleeve()
+    if not portfolio.allocations:
+        console.print("[yellow]No assets qualified for portfolio construction.[/yellow]")
+        return
+
+    console.print(Panel(f"MERIDIAN PORTFOLIO  ·  run {portfolio.run_id}", box=box.ROUNDED, expand=False))
+
+    sleeve_order = ["core", "growth", "defensive", "tactical"]
+    ordered = [s for s in sleeve_order if s in sleeves] + [s for s in sleeves if s not in sleeve_order]
+
+    for sleeve in ordered:
+        allocs = sorted(sleeves[sleeve], key=lambda a: a.weight, reverse=True)
+        sleeve_weight = sum(a.weight for a in allocs)
+        table = Table(
+            title=f"{sleeve.upper()} sleeve  ·  {sleeve_weight*100:.1f}%",
+            box=box.SIMPLE, title_justify="left",
+        )
+        table.add_column("Ticker", style="bold")
+        table.add_column("Weight", justify="right")
+        table.add_column("ACS", justify="right")
+        table.add_column("Classification")
+        for a in allocs:
+            table.add_row(a.ticker, f"{a.weight*100:.2f}%", f"{a.acs:.3f}", _cls(a.classification))
+        console.print(table)
+
+    console.print(f"  [bold]Total allocated:[/bold] {portfolio.total_weight()*100:.1f}%")
+    for w in portfolio.warnings:
+        console.print(f"  [yellow]⚠ {w}[/yellow]")
+    console.print()
+
+
+def render_compare(scan_a: ScanResult, scan_b: ScanResult) -> None:
+    """Side-by-side ACS component breakdown for two assets."""
+    a, b = scan_a.result, scan_b.result
+
+    table = Table(title=f"MERIDIAN COMPARE — {scan_a.entity} vs {scan_b.entity}", box=box.SIMPLE_HEAVY)
+    table.add_column("Component", style="cyan")
+    table.add_column(scan_a.entity, justify="right")
+    table.add_column(scan_b.entity, justify="right")
+    table.add_column("Δ", justify="right", style="dim")
+
+    def row(label, va, vb):
+        table.add_row(label, f"{va:.3f}", f"{vb:.3f}", f"{va - vb:+.3f}")
+
+    row("Macro (MAS)", a.mas, b.mas)
+    row("Tactical (TAS)", a.tas, b.tas)
+    row("Sentiment (SAS)", a.sas, b.sas)
+    row("Structural Risk (SRS)", a.srs, b.srs)
+    row("Composite (ACS)", a.acs, b.acs)
+    table.add_row(
+        "Classification",
+        _cls(scan_a.classification),
+        _cls(scan_b.classification),
+        "",
+    )
+    table.add_row(
+        "Conviction",
+        _conv(scan_a.confidence["conviction"]),
+        _conv(scan_b.confidence["conviction"]),
+        "",
+    )
+    console.print(table)
+    console.print()

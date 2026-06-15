@@ -1,0 +1,8 @@
+{
+  "signals": [
+    {"signal_type": "macro", "direction": "neutral", "magnitude": 0.5, "confidence": 0.75, "source": "rates_curve", "raw_payload": {"note": "NIM tailwind fading as cuts begin; credit normalizing"}},
+    {"signal_type": "tactical", "direction": "bullish", "magnitude": 0.7, "confidence": 0.8, "source": "momentum", "raw_payload": {"note": "Leading the bank complex higher"}},
+    {"signal_type": "sentiment", "direction": "neutral", "magnitude": 0.5, "confidence": 0.7, "source": "analyst_revisions", "raw_payload": {"note": "Balanced views; capital return supportive"}},
+    {"signal_type": "structural_risk", "direction": "neutral", "magnitude": 0.5, "confidence": 0.7, "source": "credit_cycle", "raw_payload": {"note": "Reserve build watch as consumer credit softens"}}
+  ]
+}

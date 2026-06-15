@@ -1,0 +1,8 @@
+{
+  "signals": [
+    {"signal_type": "macro", "direction": "bullish", "magnitude": 0.7, "confidence": 0.75, "source": "commodity_cycle", "raw_payload": {"note": "Supply discipline supportive of crude floor"}},
+    {"signal_type": "tactical", "direction": "bearish", "magnitude": 0.7, "confidence": 0.8, "source": "momentum", "raw_payload": {"note": "Breaking down below 200-day on demand fears"}},
+    {"signal_type": "sentiment", "direction": "neutral", "magnitude": 0.5, "confidence": 0.7, "source": "analyst_revisions", "raw_payload": {"note": "Dividend durable; growth muted"}},
+    {"signal_type": "structural_risk", "direction": "bearish", "magnitude": 0.25, "confidence": 0.75, "source": "balance_sheet", "raw_payload": {"note": "Low leverage, strong coverage"}}
+  ]
+}

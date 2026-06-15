@@ -20,8 +20,12 @@ from config.settings import DB_PATH, DATA_INPUT_PATH
 from governance.model_registry import ModelRegistry
 from core.pipeline import MeridianPipeline
 from core.signal_loader import load_signals_for, signal_file_path
+from classification.asset_universe import AssetUniverse
+from classification.seed_universe import seed_universe
+from portfolio.constructor import PortfolioConstructor
+from meta_learning.performance_tracker import PerformanceTracker
 from interface.chat import run_chat
-from interface.render import render_scan
+from interface.render import render_scan, render_recommend, render_portfolio, render_compare
 
 console = Console()
 
@@ -56,6 +60,16 @@ def ensure_baseline_model():
         console.print(f"[cyan]Active model:[/cyan] v{active['version']}")
 
 
+def ensure_universe_seeded():
+    """Seed the asset universe on first boot if it is empty."""
+    added = seed_universe()
+    if added:
+        console.print(f"[green]Asset universe seeded:[/green] {added} assets")
+    else:
+        count = len(AssetUniverse().tickers())
+        console.print(f"[cyan]Active universe:[/cyan] {count} assets")
+
+
 class MeridianCore:
     """
     Command dispatcher. cmd_scan is wired to the full pipeline (Phase 1).
@@ -88,13 +102,51 @@ class MeridianCore:
         render_scan(scan)
 
     def cmd_recommend(self):
-        console.print("[cyan]RECOMMEND[/cyan] — Pipeline not yet wired. Phase 2 in progress.")
+        tickers = AssetUniverse().tickers()
+        scans, skipped = self.pipeline.run_universe(tickers)
+        render_recommend(scans, skipped)
 
     def cmd_build_portfolio(self):
-        console.print("[cyan]BUILD PORTFOLIO[/cyan] — Pipeline not yet wired. Phase 2 in progress.")
+        universe = AssetUniverse()
+        scans, skipped = self.pipeline.run_universe(universe.tickers())
+        if not scans:
+            console.print("[yellow]No scored assets — cannot build a portfolio.[/yellow]")
+            return
+
+        results = [s.result for s in scans]
+        decisions = [s.decision for s in scans]
+        sector_map = {a["ticker"]: a["sector"] for a in universe.get_all()}
+
+        constructor = PortfolioConstructor()
+        portfolio = constructor.construct(results, decisions, sector_map=sector_map)
+        constructor.save(portfolio)
+
+        # Log every allocation for later outcome resolution (meta-learning).
+        tracker = PerformanceTracker()
+        for a in portfolio.allocations:
+            tracker.log_decision(
+                run_id=portfolio.run_id,
+                ticker=a.ticker,
+                classification=a.classification,
+                acs=a.acs,
+            )
+
+        render_portfolio(portfolio)
+        if skipped:
+            console.print(f"[dim]{len(skipped)} asset(s) skipped (no signal file).[/dim]")
 
     def cmd_compare(self, ticker_a: str, ticker_b: str):
-        console.print(f"[cyan]COMPARE[/cyan] {ticker_a} vs {ticker_b} — Pipeline not yet wired.")
+        signals_a, err_a = load_signals_for(ticker_a)
+        signals_b, err_b = load_signals_for(ticker_b)
+        if err_a:
+            console.print(f"[red]{err_a}[/red]")
+            return
+        if err_b:
+            console.print(f"[red]{err_b}[/red]")
+            return
+        scan_a = self.pipeline.run_entity(ticker_a, signals_a)
+        scan_b = self.pipeline.run_entity(ticker_b, signals_b)
+        render_compare(scan_a, scan_b)
 
     def cmd_brief(self):
         console.print("[cyan]BRIEF[/cyan] — Pipeline not yet wired. Phase 3 in progress.")
@@ -124,6 +176,7 @@ def main():
     console.print("[bold cyan]MERIDIAN[/bold cyan] — Initializing...")
     init_db()
     ensure_baseline_model()
+    ensure_universe_seeded()
 
     core = MeridianCore()
 

@@ -1,0 +1,8 @@
+{
+  "signals": [
+    {"signal_type": "macro", "direction": "bullish", "magnitude": 0.7, "confidence": 0.8, "source": "demographics", "raw_payload": {"note": "Aging-population demand tailwind"}},
+    {"signal_type": "tactical", "direction": "bullish", "magnitude": 0.6, "confidence": 0.75, "source": "momentum", "raw_payload": {"note": "Attempting to base after selloff"}},
+    {"signal_type": "sentiment", "direction": "bullish", "magnitude": 0.6, "confidence": 0.7, "source": "analyst_revisions", "raw_payload": {"note": "Street still constructive on long-term EPS"}},
+    {"signal_type": "structural_risk", "direction": "bullish", "magnitude": 0.9, "confidence": 0.85, "source": "accounting_flags", "raw_payload": {"note": "DOJ probe, MLR pressure, reserve adequacy questions"}}
+  ]
+}

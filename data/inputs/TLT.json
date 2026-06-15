@@ -1,0 +1,8 @@
+{
+  "signals": [
+    {"signal_type": "macro", "direction": "bearish", "magnitude": 0.7, "confidence": 0.8, "source": "rates_curve", "raw_payload": {"note": "Sticky inflation and heavy issuance pressure long end"}},
+    {"signal_type": "tactical", "direction": "bearish", "magnitude": 0.7, "confidence": 0.8, "source": "momentum", "raw_payload": {"note": "Persistent downtrend in long-duration bonds"}},
+    {"signal_type": "sentiment", "direction": "neutral", "magnitude": 0.5, "confidence": 0.65, "source": "positioning", "raw_payload": {"note": "Crowded long-duration bets unwinding"}},
+    {"signal_type": "structural_risk", "direction": "bearish", "magnitude": 0.2, "confidence": 0.7, "source": "credit_quality", "raw_payload": {"note": "Treasury collateral; no credit risk"}}
+  ]
+}

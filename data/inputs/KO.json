@@ -1,0 +1,8 @@
+{
+  "signals": [
+    {"signal_type": "macro", "direction": "bullish", "magnitude": 0.6, "confidence": 0.75, "source": "defensive_rotation", "raw_payload": {"note": "Bid for defensives as growth wobbles"}},
+    {"signal_type": "tactical", "direction": "neutral", "magnitude": 0.5, "confidence": 0.7, "source": "momentum", "raw_payload": {"note": "Range-bound, low beta"}},
+    {"signal_type": "sentiment", "direction": "bearish", "magnitude": 0.6, "confidence": 0.7, "source": "analyst_revisions", "raw_payload": {"note": "Volume softness, FX headwinds flagged"}},
+    {"signal_type": "structural_risk", "direction": "bearish", "magnitude": 0.2, "confidence": 0.8, "source": "balance_sheet", "raw_payload": {"note": "Stable cash flows, reliable dividend"}}
+  ]
+}

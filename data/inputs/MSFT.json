@@ -1,0 +1,9 @@
+{
+  "signals": [
+    {"signal_type": "macro", "direction": "bullish", "magnitude": 0.85, "confidence": 0.9, "source": "cloud_secular", "raw_payload": {"note": "Azure reacceleration, AI workload tailwind"}},
+    {"signal_type": "macro", "direction": "bullish", "magnitude": 0.7, "confidence": 0.8, "source": "enterprise_it", "raw_payload": {"note": "Enterprise IT budgets resilient"}},
+    {"signal_type": "tactical", "direction": "bullish", "magnitude": 0.8, "confidence": 0.88, "source": "momentum", "raw_payload": {"note": "Steady uptrend, low volatility"}},
+    {"signal_type": "sentiment", "direction": "bullish", "magnitude": 0.7, "confidence": 0.85, "source": "analyst_revisions", "raw_payload": {"note": "Consensus upgrades on Copilot monetization"}},
+    {"signal_type": "structural_risk", "direction": "bearish", "magnitude": 0.15, "confidence": 0.85, "source": "balance_sheet", "raw_payload": {"note": "AAA-rated, strong FCF conversion"}}
+  ]
+}

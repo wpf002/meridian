@@ -1,0 +1,8 @@
+{
+  "signals": [
+    {"signal_type": "macro", "direction": "bullish", "magnitude": 0.7, "confidence": 0.85, "source": "consumer_demand", "raw_payload": {"note": "Services growth durable; installed base expanding"}},
+    {"signal_type": "tactical", "direction": "bullish", "magnitude": 0.7, "confidence": 0.8, "source": "momentum", "raw_payload": {"note": "Holding above rising 50-day"}},
+    {"signal_type": "sentiment", "direction": "neutral", "magnitude": 0.5, "confidence": 0.7, "source": "analyst_revisions", "raw_payload": {"note": "Mixed views on hardware refresh cycle"}},
+    {"signal_type": "structural_risk", "direction": "bearish", "magnitude": 0.2, "confidence": 0.8, "source": "balance_sheet", "raw_payload": {"note": "Fortress balance sheet, heavy buybacks"}}
+  ]
+}

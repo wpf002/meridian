@@ -65,19 +65,107 @@ class PortfolioConstructor:
         self.sleeve_targets = sleeve_targets or SLEEVE_TARGETS.copy()
         self.constraints = constraints or CONSTRAINTS.copy()
 
-    def _assign_sleeve(self, classification: str) -> str | None:
-        mapping = {
-            "CORE": "core",
-            "HIGH-ASYMMETRY": "growth",
-            "TACTICAL": "tactical",
-            "AVOID": None,
-        }
-        return mapping.get(classification)
+    SLEEVE_ORDER = ["core", "growth", "defensive", "tactical"]
+
+    def _route_sleeve(self, classification: str, result: ACSResult) -> str | None:
+        """
+        Assign one asset to exactly one sleeve.
+
+        CORE assets anchor the Core sleeve. A non-AVOID asset that is stable but
+        modest — structural risk at/below the defensive cap and ACS below the
+        Growth floor — is routed to Defensive ballast instead of Tactical. The
+        rest fall to Growth (HIGH-ASYMMETRY) or Tactical (TACTICAL).
+        """
+        if classification == "AVOID":
+            return None
+        if classification == "CORE":
+            return "core" if result.acs >= self.constraints["min_acs_for_core_sleeve"] else "growth"
+
+        is_low_risk = result.srs <= self.constraints["defensive_srs_max"]
+        below_growth_floor = result.acs < self.constraints["min_acs_for_growth_sleeve"]
+        if is_low_risk and below_growth_floor:
+            return "defensive"
+
+        if classification == "HIGH-ASYMMETRY":
+            return "growth" if result.acs >= self.constraints["min_acs_for_growth_sleeve"] else "tactical"
+        if classification == "TACTICAL":
+            return "tactical"
+        return None
+
+    def _distribute_sleeve_targets(self, populated: list[str]) -> dict[str, float]:
+        """Scale base sleeve targets over only the populated sleeves so they sum to 1.0."""
+        base = {s: self.sleeve_targets.get(s, 0.0) for s in populated}
+        total = sum(base.values())
+        if total <= 0:
+            # Fall back to equal split if targets are all zero.
+            return {s: 1.0 / len(populated) for s in populated} if populated else {}
+        return {s: v / total for s, v in base.items()}
+
+    def _cap_and_normalize(self, raw: dict[str, float], cap: float) -> dict[str, float]:
+        """
+        Normalize weights to sum to 1.0, then water-fill against the per-asset cap:
+        any asset over the cap is pinned at the cap and its excess is redistributed
+        to the uncapped assets, iterating until the cap holds everywhere.
+        """
+        total = sum(raw.values())
+        if total <= 0:
+            return {}
+        weights = {e: w / total for e, w in raw.items()}
+
+        for _ in range(100):
+            over = {e: w for e, w in weights.items() if w > cap + 1e-9}
+            if not over:
+                break
+            excess = sum(w - cap for w in over.values())
+            for e in over:
+                weights[e] = cap
+            uncapped = {e: w for e, w in weights.items() if w < cap - 1e-9}
+            base = sum(uncapped.values())
+            if base <= 0:
+                break  # everyone is capped — residual cannot be placed
+            for e in uncapped:
+                weights[e] += excess * (weights[e] / base)
+        return weights
+
+    def _check_constraints(self, portfolio: "Portfolio", sector_map: dict = None) -> None:
+        sleeves = portfolio.by_sleeve()
+
+        # Total allocation (capacity shortfall when assets * cap < 1.0)
+        total = portfolio.total_weight()
+        if total < 0.99:
+            portfolio.warnings.append(
+                f"Total allocated {total*100:.1f}% — capped assets left "
+                f"{(1 - total)*100:.1f}% unplaced (add assets or raise max_single_asset)"
+            )
+
+        # Minimum assets per populated sleeve (soft)
+        min_assets = self.constraints["min_assets_per_sleeve"]
+        for sleeve, allocs in sleeves.items():
+            if 0 < len(allocs) < min_assets:
+                portfolio.warnings.append(
+                    f"{sleeve.capitalize()} sleeve holds {len(allocs)} asset(s) "
+                    f"(min {min_assets}) — thinly diversified"
+                )
+
+        # Sector concentration (soft) — only checkable when sector data is provided
+        if sector_map:
+            sector_weight: dict[str, float] = {}
+            for a in portfolio.allocations:
+                sector = sector_map.get(a.ticker, "Unknown")
+                sector_weight[sector] = sector_weight.get(sector, 0.0) + a.weight
+            cap = self.constraints["max_single_sector"]
+            for sector, w in sector_weight.items():
+                if w > cap + 1e-9:
+                    portfolio.warnings.append(
+                        f"{sector} concentration {w*100:.1f}% exceeds "
+                        f"max_single_sector {cap*100:.0f}%"
+                    )
 
     def construct(
         self,
         results: list[ACSResult],
         decisions: list[DecisionOutput],
+        sector_map: dict = None,
     ) -> Portfolio:
         run_id = str(uuid.uuid4())
         portfolio = Portfolio(run_id=run_id)
@@ -85,46 +173,54 @@ class PortfolioConstructor:
         classifications = classify_batch(results, decisions)
         result_map = {r.entity: r for r in results}
 
-        # Group by sleeve
+        # 1. Route each asset to a single sleeve.
         sleeve_assets: dict[str, list[tuple]] = {}
         for entity, classification in classifications.items():
-            sleeve = self._assign_sleeve(classification)
+            result = result_map.get(entity)
+            if result is None:
+                continue
+            sleeve = self._route_sleeve(classification, result)
             if sleeve is None:
                 continue
-            result = result_map.get(entity)
-            if result:
-                sleeve_assets.setdefault(sleeve, []).append((entity, result.acs, classification))
+            sleeve_assets.setdefault(sleeve, []).append((entity, result.acs, classification))
 
-        # Sort each sleeve by ACS descending and assign weights
+        if not sleeve_assets:
+            return portfolio
+
+        # 2. Redistribute empty-sleeve targets across the populated sleeves.
+        sleeve_weights = self._distribute_sleeve_targets(list(sleeve_assets.keys()))
+
+        # 3. Rank-decay weights within each sleeve.
+        raw: dict[str, float] = {}
+        meta: dict[str, tuple] = {}
         for sleeve, assets in sleeve_assets.items():
             assets.sort(key=lambda x: x[1], reverse=True)
-            sleeve_target = self.sleeve_targets.get(sleeve, 0.0)
+            target = sleeve_weights[sleeve]
             n = len(assets)
-
+            denom = sum(range(1, n + 1))
             for i, (ticker, acs, classification) in enumerate(assets):
-                # Weight decays by rank within sleeve
-                rank_weight = (n - i) / sum(range(1, n + 1))
-                raw_weight = sleeve_target * rank_weight
+                raw[ticker] = target * (n - i) / denom
+                meta[ticker] = (sleeve, acs, classification)
 
-                # Enforce max single asset constraint
-                weight = min(raw_weight, self.constraints["max_single_asset"])
+        # 4. Apply the per-asset cap and normalize the whole book to 100%.
+        final = self._cap_and_normalize(raw, self.constraints["max_single_asset"])
 
-                portfolio.allocations.append(
-                    PortfolioAllocation(
-                        run_id=run_id,
-                        sleeve=sleeve,
-                        ticker=ticker,
-                        weight=round(weight, 4),
-                        classification=classification,
-                        acs=round(acs, 4),
-                        rationale=f"ACS {acs:.3f} | Sleeve: {sleeve} | Classification: {classification}",
-                    )
+        for ticker, weight in final.items():
+            sleeve, acs, classification = meta[ticker]
+            portfolio.allocations.append(
+                PortfolioAllocation(
+                    run_id=run_id,
+                    sleeve=sleeve,
+                    ticker=ticker,
+                    weight=round(weight, 4),
+                    classification=classification,
+                    acs=round(acs, 4),
+                    rationale=f"ACS {acs:.3f} | Sleeve: {sleeve} | Classification: {classification}",
                 )
+            )
 
-        # Warn if total weight deviates significantly from 1.0
-        total = portfolio.total_weight()
-        if not (0.85 <= total <= 1.05):
-            portfolio.warnings.append(f"Total portfolio weight {total:.3f} — review allocation balance")
+        # 5. Surface soft-constraint breaches.
+        self._check_constraints(portfolio, sector_map)
 
         return portfolio
 

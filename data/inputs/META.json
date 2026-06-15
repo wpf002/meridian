@@ -1,0 +1,8 @@
+{
+  "signals": [
+    {"signal_type": "macro", "direction": "bullish", "magnitude": 0.75, "confidence": 0.8, "source": "ad_cycle", "raw_payload": {"note": "Ad revenue strength; efficiency drive intact"}},
+    {"signal_type": "tactical", "direction": "neutral", "magnitude": 0.5, "confidence": 0.7, "source": "momentum", "raw_payload": {"note": "Consolidating after extended run"}},
+    {"signal_type": "sentiment", "direction": "bullish", "magnitude": 0.75, "confidence": 0.8, "source": "analyst_revisions", "raw_payload": {"note": "Positive on AI-driven engagement"}},
+    {"signal_type": "structural_risk", "direction": "neutral", "magnitude": 0.5, "confidence": 0.7, "source": "capex", "raw_payload": {"note": "Reality Labs cash burn an open question"}}
+  ]
+}
