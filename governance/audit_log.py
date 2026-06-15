@@ -8,8 +8,8 @@ from core.traceability import TraceabilityKernel
 
 
 class AuditLog:
-    def __init__(self):
-        self.kernel = TraceabilityKernel()
+    def __init__(self, db_path: str = None):
+        self.kernel = TraceabilityKernel(db_path) if db_path else TraceabilityKernel()
 
     def record_scan(self, entity: str, run_id: str, inputs: dict, outputs: dict) -> str:
         return self.kernel.log("SCAN", entity=entity, run_id=run_id,

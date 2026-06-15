@@ -14,9 +14,10 @@ import sys
 import sqlite3
 import argparse
 from pathlib import Path
+from datetime import datetime, timezone
 from rich.console import Console
 
-from config.settings import DB_PATH, DATA_INPUT_PATH
+from config.settings import DB_PATH, DATA_INPUT_PATH, LOG_PATH
 from governance.model_registry import ModelRegistry
 from core.pipeline import MeridianPipeline
 from core.signal_loader import load_signals_for, signal_file_path
@@ -24,11 +25,15 @@ from classification.asset_universe import AssetUniverse
 from classification.seed_universe import seed_universe
 from portfolio.constructor import PortfolioConstructor
 from meta_learning.performance_tracker import PerformanceTracker
+from meta_learning.weight_adjuster import WeightAdjuster
 from sandbox.scenario_builder import get_scenario, list_scenarios
-from sandbox.simulator import Simulator
+from sandbox.simulator import Simulator, classify_current_regime
+from outputs.alert_system import AlertSystem
+from outputs import daily_brief, weekly_summary
 from interface.chat import run_chat
 from interface.render import (
     render_scan, render_recommend, render_portfolio, render_compare, render_scenario,
+    render_alerts, render_status,
 )
 
 console = Console()
@@ -184,11 +189,72 @@ class MeridianCore:
         report = Simulator(pipeline=self.pipeline).run_scenario(scenario, universe_data)
         render_scenario(report)
 
+    def _universe_scans(self):
+        """Run the full active universe, returning (scans, skipped)."""
+        return self.pipeline.run_universe(AssetUniverse().tickers())
+
     def cmd_brief(self):
-        console.print("[cyan]BRIEF[/cyan] — Pipeline not yet wired. Phase 3 in progress.")
+        scans, skipped = self._universe_scans()
+        if not scans:
+            console.print("[yellow]No scored assets — provide signals to generate a brief.[/yellow]")
+            return
+
+        results = [s.result for s in scans]
+        decisions = [s.decision for s in scans]
+        prioritized = [s.prioritized for s in scans]
+        regime = classify_current_regime(results)
+
+        # Fire alerts for this run.
+        alerts = AlertSystem()
+        fired = sum(alerts.check_and_fire(s.result, s.prioritized) for s in scans)
+
+        brief = daily_brief.generate(results, prioritized, decisions, regime=regime)
+
+        # Persist to logs/ with a timestamp.
+        Path(LOG_PATH).mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M")
+        (Path(LOG_PATH) / f"brief_{stamp}.txt").write_text(brief)
+        console.print(
+            f"[dim]Saved to {LOG_PATH}/brief_{stamp}.txt · {fired} alert(s) fired"
+            + (f" · {len(skipped)} skipped" if skipped else "") + "[/dim]"
+        )
+
+    def cmd_weekly(self):
+        scans, _ = self._universe_scans()
+        if not scans:
+            console.print("[yellow]No scored assets — cannot generate a weekly summary.[/yellow]")
+            return
+        regime = classify_current_regime([s.result for s in scans])
+        prior = weekly_summary.load_prior_snapshot()
+        text = weekly_summary.generate(scans, regime, prior=prior)
+        from rich.panel import Panel
+        from rich import box as _box
+        console.print(Panel(text, title="[bold cyan]MERIDIAN WEEKLY SUMMARY[/bold cyan]", box=_box.ROUNDED))
+        console.print(f"[dim]Saved to {LOG_PATH}/[/dim]")
 
     def cmd_alerts(self):
-        console.print("[cyan]ALERTS[/cyan] — Pipeline not yet wired.")
+        render_alerts(AlertSystem().get_active())
+
+    def cmd_ack(self, alert_id: str):
+        AlertSystem().acknowledge(alert_id)
+        console.print(f"[green]Acknowledged[/green] {alert_id}")
+
+    def cmd_resolve(self, ticker: str, actual_return: float):
+        n = PerformanceTracker().resolve_ticker(ticker, actual_return)
+        if n:
+            console.print(f"[green]Resolved[/green] {n} outcome(s) for {ticker.upper()} at {actual_return:+.2%}")
+        else:
+            console.print(f"[yellow]No pending outcomes for {ticker.upper()}[/yellow]")
+
+    def cmd_learn(self):
+        result = WeightAdjuster().run_cycle()
+        if result.adjusted:
+            console.print(f"[green]Weights adjusted[/green] → model v{result.new_version}")
+            console.print(f"  {result.reason}")
+            console.print(f"  {result.old_weights}  →  {result.new_weights}")
+            self._pipeline = None  # rebuild so new weights take effect
+        else:
+            console.print(f"[cyan]No adjustment:[/cyan] {result.reason}")
 
     def cmd_status(self):
         registry = ModelRegistry()
@@ -196,11 +262,9 @@ class MeridianCore:
         version = active["version"] if active else "none"
         weights = active["weights"] if active else {}
         thresholds = active["thresholds"] if active else {}
-        console.print(f"[bold]MERIDIAN STATUS[/bold]")
-        console.print(f"  Model Version : {version}")
-        console.print(f"  DB Path       : {DB_PATH}")
-        console.print(f"  Weights       : {weights}")
-        console.print(f"  Thresholds    : {thresholds}")
+        accuracy = PerformanceTracker().get_accuracy_by_classification()
+        history = registry.history()
+        render_status(version, weights, thresholds, DB_PATH, accuracy, history)
 
 
 def main():

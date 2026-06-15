@@ -280,3 +280,72 @@ def render_scenario(report: ScenarioReport) -> None:
         )
     console.print(sleeve_tbl)
     console.print(f"  [dim]run_id: {report.run_id}[/dim]\n")
+
+
+_SEVERITY_STYLE = {"high": "bold red", "medium": "yellow", "low": "dim"}
+
+
+def render_alerts(alerts: list) -> None:
+    """Active alert table with severity coloring."""
+    if not alerts:
+        console.print("[green]No active alerts.[/green]\n")
+        return
+
+    table = Table(title=f"MERIDIAN ALERTS — {len(alerts)} active", box=box.SIMPLE_HEAVY)
+    table.add_column("Severity")
+    table.add_column("Type", style="cyan")
+    table.add_column("Entity", style="bold")
+    table.add_column("Message")
+    table.add_column("ID", style="dim")
+
+    order = {"high": 0, "medium": 1, "low": 2}
+    for a in sorted(alerts, key=lambda x: order.get(x["severity"], 9)):
+        style = _SEVERITY_STYLE.get(a["severity"], "white")
+        table.add_row(
+            f"[{style}]{a['severity'].upper()}[/{style}]",
+            a["alert_type"],
+            a["entity"] or "—",
+            a["message"],
+            a["id"][:8],
+        )
+    console.print(table)
+    console.print("[dim]Acknowledge with: meridian ack <ID>[/dim]\n")
+
+
+def render_status(version: str, weights: dict, thresholds: dict, db_path: str,
+                  accuracy: dict, model_history: list) -> None:
+    """System status: model version, weights/thresholds, accuracy, weight history."""
+    console.print(Panel(
+        f"[bold]Model[/bold] v{version}    [dim]{db_path}[/dim]",
+        title="MERIDIAN STATUS", box=box.ROUNDED, expand=False,
+    ))
+
+    wt = Table(box=box.SIMPLE, title="Active weights & thresholds", title_justify="left")
+    wt.add_column("Weights", style="cyan")
+    wt.add_column("", justify="right")
+    for k, v in weights.items():
+        wt.add_row(k, f"{v:.2f}")
+    for k, v in thresholds.items():
+        wt.add_row(f"[dim]threshold:{k}[/dim]", f"{v:.2f}")
+    console.print(wt)
+
+    if accuracy:
+        acc = Table(box=box.SIMPLE, title="Accuracy by classification", title_justify="left")
+        acc.add_column("Classification", style="bold")
+        acc.add_column("Accuracy", justify="right")
+        acc.add_column("Resolved", justify="right")
+        acc.add_column("Avg return", justify="right")
+        for cls, s in accuracy.items():
+            acc.add_row(cls, f"{s['accuracy']:.0%}", f"{s['correct']}/{s['total']}", f"{s['avg_return']:+.2%}")
+        console.print(acc)
+    else:
+        console.print("[dim]No resolved outcomes yet — accuracy unavailable.[/dim]")
+
+    if model_history and len(model_history) > 1:
+        hist = Table(box=box.SIMPLE, title="Model version history", title_justify="left")
+        hist.add_column("Version", style="bold")
+        hist.add_column("Notes")
+        for m in model_history[:6]:
+            hist.add_row(m["version"], (m.get("notes") or "")[:60])
+        console.print(hist)
+    console.print()

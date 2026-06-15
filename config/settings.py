@@ -42,3 +42,15 @@ CLASSIFICATIONS = ["CORE", "HIGH-ASYMMETRY", "TACTICAL", "AVOID"]
 
 # Regime Types
 REGIMES = ["RISK-ON", "RISK-OFF", "INFLATIONARY", "LIQUIDITY-CONTRACTION"]
+
+# Alert thresholds (configurable in .env)
+ALERT_THRESHOLDS = {
+    "srs_high": float(os.getenv("ALERT_SRS_HIGH", "0.80")),       # structural risk spike
+    "acs_tier_1": float(os.getenv("ALERT_ACS_TIER_1", "0.75")),   # Tier 1 breach
+    "confidence_low": float(os.getenv("ALERT_CONFIDENCE_LOW", "0.35")),
+}
+
+# Meta-learning
+MIN_SAMPLE_SIZE = int(os.getenv("MIN_SAMPLE_SIZE", "20"))   # resolved outcomes before adjusting
+WEIGHT_NUDGE = float(os.getenv("WEIGHT_NUDGE", "0.02"))     # max weight shift per cycle
+OUTCOME_PERIOD_DAYS = int(os.getenv("OUTCOME_PERIOD_DAYS", "90"))

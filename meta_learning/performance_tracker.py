@@ -53,6 +53,19 @@ class PerformanceTracker:
                  datetime.now(timezone.utc).isoformat(), entry_id),
             )
 
+    def resolve_ticker(self, ticker: str, actual_return: float) -> int:
+        """
+        Resolve all pending outcomes for a ticker with a realized return.
+        A non-AVOID call is 'correct' if the return was positive; AVOID is
+        'correct' if the return was non-positive. Returns how many were resolved.
+        """
+        pending = [p for p in self.get_pending() if p["ticker"] == ticker.upper()]
+        for p in pending:
+            was_bullish = p["classification_at_time"] != "AVOID"
+            correct = was_bullish == (actual_return > 0)
+            self.resolve_outcome(p["id"], actual_return, correct)
+        return len(pending)
+
     def get_accuracy_by_classification(self) -> dict[str, dict]:
         """
         Returns accuracy stats per classification type.

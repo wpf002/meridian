@@ -8,7 +8,7 @@ signal divergences occur, or classifications change.
 import uuid
 import sqlite3
 from datetime import datetime, timezone
-from config.settings import DB_PATH
+from config.settings import DB_PATH, ALERT_THRESHOLDS
 from core.scoring_engine import ACSResult
 from core.priority_engine import PrioritizedEntity
 
@@ -19,8 +19,9 @@ class AlertSystem:
     SEVERITY_MEDIUM = "medium"
     SEVERITY_LOW = "low"
 
-    def __init__(self, db_path: str = DB_PATH):
+    def __init__(self, db_path: str = DB_PATH, thresholds: dict = None):
         self.db_path = db_path
+        self.thresholds = thresholds or ALERT_THRESHOLDS.copy()
 
     def _conn(self):
         return sqlite3.connect(self.db_path)
@@ -36,14 +37,18 @@ class AlertSystem:
                  datetime.now(timezone.utc).isoformat()),
             )
 
-    def check_and_fire(self, result: ACSResult, prioritized: PrioritizedEntity):
+    def check_and_fire(self, result: ACSResult, prioritized: PrioritizedEntity) -> int:
+        """Evaluate one entity against thresholds, firing alerts. Returns count fired."""
+        fired = 0
+
         # High structural risk
-        if result.srs > 0.80:
+        if result.srs > self.thresholds["srs_high"]:
             self._fire(
                 "risk_spike", result.entity,
                 f"{result.entity}: Structural risk at {result.srs:.2f} — immediate review required",
                 self.SEVERITY_HIGH,
             )
+            fired += 1
 
         # Signal divergence
         if "MACRO/TACTICAL_DIVERGENCE" in prioritized.flags or "TACTICAL/MACRO_DIVERGENCE" in prioritized.flags:
@@ -52,14 +57,27 @@ class AlertSystem:
                 f"{result.entity}: Macro/Tactical signal divergence detected",
                 self.SEVERITY_MEDIUM,
             )
+            fired += 1
 
         # Tier 1 threshold breach
-        if prioritized.tier == 1:
+        if prioritized.tier == 1 and result.acs >= self.thresholds["acs_tier_1"]:
             self._fire(
                 "threshold_breach", result.entity,
                 f"{result.entity}: ACS {result.acs:.3f} — Tier 1 threshold reached",
                 self.SEVERITY_HIGH,
             )
+            fired += 1
+
+        # Low conviction on an otherwise actionable name
+        if result.confidence < self.thresholds["confidence_low"] and prioritized.tier <= 2:
+            self._fire(
+                "low_confidence", result.entity,
+                f"{result.entity}: Confidence {result.confidence:.2f} below threshold on a Tier {prioritized.tier} name",
+                self.SEVERITY_LOW,
+            )
+            fired += 1
+
+        return fired
 
     def get_active(self, acknowledged: bool = False) -> list[dict]:
         with self._conn() as conn:

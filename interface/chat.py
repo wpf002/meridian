@@ -34,9 +34,13 @@ def print_help():
   meridian compare <A> vs <B>   Compare two assets
   meridian scenarios            List available stress scenarios
   meridian scenario <NAME>      Run a scenario impact report
-  meridian brief                Daily intelligence brief
+  meridian brief                Daily intelligence brief (saved to logs/)
+  meridian weekly               Weekly summary (regime/drift/accuracy)
   meridian alerts               Active alerts
-  meridian status               System status
+  meridian ack <ID>             Acknowledge an alert
+  meridian resolve <T> <ret>    Record a realized return for a ticker
+  meridian learn                Run a meta-learning weight cycle
+  meridian status               System status, accuracy, weight history
   help                          Show this menu
   exit                          Quit
 """)
@@ -95,8 +99,27 @@ def run_chat(meridian_core):
         elif cmd == "meridian brief":
             meridian_core.cmd_brief()
 
+        elif cmd == "meridian weekly":
+            meridian_core.cmd_weekly()
+
         elif cmd == "meridian alerts":
             meridian_core.cmd_alerts()
+
+        elif cmd.startswith("meridian ack "):
+            meridian_core.cmd_ack(raw.split(" ", 2)[-1].strip())
+
+        elif cmd.startswith("meridian resolve "):
+            parts = raw.split()
+            if len(parts) == 4:
+                try:
+                    meridian_core.cmd_resolve(parts[2], float(parts[3]))
+                except ValueError:
+                    console.print("[red]Usage: meridian resolve <TICKER> <return>  (e.g. 0.12 or -0.08)[/red]")
+            else:
+                console.print("[red]Usage: meridian resolve <TICKER> <return>[/red]")
+
+        elif cmd == "meridian learn":
+            meridian_core.cmd_learn()
 
         elif cmd == "meridian status":
             meridian_core.cmd_status()
