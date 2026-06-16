@@ -29,14 +29,12 @@ export default function SystemBar() {
   }, [])
 
   return (
-    <div className="sticky top-0 z-10 flex items-center justify-between gap-3 px-6 py-2.5
+    <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 py-2.5
                     border-b border-edge/70 bg-base/80 backdrop-blur">
-      <div className="flex items-center gap-2 text-xs">
-        <span className={`flex items-center gap-1.5 chip ${online ? 'text-green' : 'text-avoid'}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${online ? 'bg-green shadow-glow' : 'bg-avoid'}`} />
-          {online === false ? 'OFFLINE' : 'ONLINE'}
-        </span>
-      </div>
+      <span className={`flex items-center gap-1.5 chip ${online ? 'text-green' : 'text-avoid'}`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${online ? 'bg-green shadow-glow' : 'bg-avoid'}`} />
+        {online === false ? 'OFFLINE' : 'ONLINE'}
+      </span>
       <div className="flex items-center gap-2 text-xs">
         {status && <Chip label="MODEL" value={`v${status.model_version}`} />}
         {status && (
@@ -46,7 +44,7 @@ export default function SystemBar() {
             color={status.signal_source === 'AURORA' ? 'text-green' : 'text-blue'}
           />
         )}
-        <span className="chip text-muted">{clock}</span>
+        <span className="chip text-muted hidden sm:inline-flex">{clock}</span>
       </div>
     </div>
   )

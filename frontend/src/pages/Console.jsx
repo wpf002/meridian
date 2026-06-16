@@ -273,7 +273,7 @@ export default function Console() {
   }
 
   return (
-    <div className="h-[calc(100vh-9.5rem)] flex flex-col card overflow-hidden">
+    <div className="h-[calc(100dvh-12rem)] md:h-[calc(100vh-9.5rem)] min-h-[440px] flex flex-col card overflow-hidden">
       <div className="card-head flex items-center justify-between shrink-0">
         <span>Console</span>
         <span className="text-faint normal-case tracking-normal text-xs font-mono">
