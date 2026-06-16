@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 from interface.console import console
 from config.settings import DB_PATH, DATA_INPUT_PATH, LOG_PATH, SYNTRACKR_ENABLED
 from governance.model_registry import ModelRegistry
+from core import bootstrap
 from core.pipeline import MeridianPipeline
 from core.signal_loader import signal_file_path
 from core.signal_source import default_source
@@ -42,38 +43,27 @@ from interface.render import (
 
 
 def init_db():
-    """Initialize the database from schema.sql."""
-    schema_path = Path("db/schema.sql")
-    if not schema_path.exists():
+    """Initialize the database from schema.sql (CLI wrapper with status output)."""
+    try:
+        bootstrap.init_db()
+    except FileNotFoundError:
         console.print("[red]ERROR: db/schema.sql not found[/red]")
         sys.exit(1)
-
-    db_path = Path(DB_PATH)
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.executescript(schema_path.read_text())
-
     console.print(f"[green]Database initialized:[/green] {DB_PATH}")
 
 
 def ensure_baseline_model():
-    """Register baseline model version if none exists."""
-    registry = ModelRegistry()
-    active = registry.get_active()
-    if not active:
-        registry.register(
-            version="1.0.0",
-            notes="Baseline model — initial deployment",
-        )
-        console.print("[green]Baseline model registered:[/green] v1.0.0")
+    """Register baseline model version if none exists (CLI wrapper)."""
+    version, registered = bootstrap.ensure_baseline_model()
+    if registered:
+        console.print(f"[green]Baseline model registered:[/green] v{version}")
     else:
-        console.print(f"[cyan]Active model:[/cyan] v{active['version']}")
+        console.print(f"[cyan]Active model:[/cyan] v{version}")
 
 
 def ensure_universe_seeded():
-    """Seed the asset universe on first boot if it is empty."""
-    added = seed_universe()
+    """Seed the asset universe on first boot if it is empty (CLI wrapper)."""
+    added = bootstrap.ensure_universe_seeded()
     if added:
         console.print(f"[green]Asset universe seeded:[/green] {added} assets")
     else:
