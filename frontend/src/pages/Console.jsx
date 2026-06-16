@@ -41,7 +41,7 @@ function ScanOut({ d }) {
         <span className={`font-mono text-xs ${CONVICTION_COLOR[d.conviction]}`}>{titleCase(d.conviction)}</span>
       </div>
       <div className={`font-mono text-xs ${MUT}`}>
-        Macro {score(d.components.mas)} · Price trend {score(d.components.tas)} ·
+        Macro {score(d.components.mas)} · Price Trend {score(d.components.tas)} ·
         News {score(d.components.sas)} · Risk {score(d.components.srs)}
       </div>
       {d.flags.length > 0 && (
@@ -131,7 +131,7 @@ function CompareOut({ d }) {
   const rows = [
     ['Score', d.a.acs, d.b.acs, d.delta.acs],
     ['Macro', d.a.components.mas, d.b.components.mas, d.delta.mas],
-    ['Price trend', d.a.components.tas, d.b.components.tas, d.delta.tas],
+    ['Price Trend', d.a.components.tas, d.b.components.tas, d.delta.tas],
     ['News', d.a.components.sas, d.b.components.sas, d.delta.sas],
     ['Risk', d.a.components.srs, d.b.components.srs, d.delta.srs],
   ]
@@ -165,7 +165,7 @@ function BriefOut({ d }) {
 }
 
 const WEIGHT_LABEL = {
-  macro: 'Macro', tactical: 'Price trend', sentiment: 'News', structural_risk: 'Risk',
+  macro: 'Macro', tactical: 'Price Trend', sentiment: 'News', structural_risk: 'Risk',
 }
 
 function StatusOut({ d }) {

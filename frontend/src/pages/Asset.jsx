@@ -19,7 +19,7 @@ function rationaleRows(raw) {
         .replace(/_/g, ' ')
         .replace(/ACS\s+([0-9.]+)/g, (_, n) => `Score ${pts(n)}`)
         .replace(/MAS\s+([0-9.]+)/g, (_, n) => `Macro ${pts(n)}`)
-        .replace(/TAS\s+([0-9.]+)/g, (_, n) => `Price trend ${pts(n)}`)
+        .replace(/TAS\s+([0-9.]+)/g, (_, n) => `Price Trend ${pts(n)}`)
         .replace(/SAS\s+([0-9.]+)/g, (_, n) => `News ${pts(n)}`)
         .replace(/SRS\s+([0-9.]+)/g, (_, n) => `Risk ${pts(n)}`)
         .replace(/Classification:\s*([A-Z-]+)/g, (_, c) => `Tier: ${tierLabel(c)}`)
@@ -59,7 +59,7 @@ function ComparePanel({ ticker }) {
     ? [
         ['Score', result.a.acs, result.b.acs, result.delta.acs],
         ['Macro', result.a.components.mas, result.b.components.mas, result.delta.mas],
-        ['Price trend', result.a.components.tas, result.b.components.tas, result.delta.tas],
+        ['Price Trend', result.a.components.tas, result.b.components.tas, result.delta.tas],
         ['News', result.a.components.sas, result.b.components.sas, result.delta.sas],
         ['Risk', result.a.components.srs, result.b.components.srs, result.delta.srs],
       ]

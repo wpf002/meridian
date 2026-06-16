@@ -9,7 +9,7 @@ const WEIGHT_COLOR = {
 }
 // Match the plain ingredient names used on the asset page.
 const WEIGHT_LABEL = {
-  macro: 'Macro', tactical: 'Price trend', sentiment: 'News', structural_risk: 'Risk',
+  macro: 'Macro', tactical: 'Price Trend', sentiment: 'News', structural_risk: 'Risk',
 }
 const weightLabel = (k) => WEIGHT_LABEL[k] || k
 

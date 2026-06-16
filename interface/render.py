@@ -88,7 +88,7 @@ def render_scan(scan: ScanResult) -> None:
     table.add_column("Score", justify="right")
     table.add_column("Weight", justify="right", style="dim")
     table.add_row("Macro", _score(r.mas), f"{weights.get('macro', 0):.2f}")
-    table.add_row("Price trend", _score(r.tas), f"{weights.get('tactical', 0):.2f}")
+    table.add_row("Price Trend", _score(r.tas), f"{weights.get('tactical', 0):.2f}")
     table.add_row("News", _score(r.sas), f"{weights.get('sentiment', 0):.2f}")
     table.add_row(
         "Risk",
@@ -239,7 +239,7 @@ def render_compare(scan_a: ScanResult, scan_b: ScanResult) -> None:
         table.add_row(label, _score(va), _score(vb), f"{round((va - vb) * 100):+d}")
 
     row("Macro", a.mas, b.mas)
-    row("Price trend", a.tas, b.tas)
+    row("Price Trend", a.tas, b.tas)
     row("News", a.sas, b.sas)
     row("Risk", a.srs, b.srs)
     row("Score", a.acs, b.acs)

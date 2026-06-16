@@ -307,7 +307,7 @@ export async function runCommand(raw) {
         return ok('status', await getStatus())
       case 'weights': {
         const d = await getStatus()
-        const L = { macro: 'Macro', tactical: 'Price trend', sentiment: 'News', structural_risk: 'Risk' }
+        const L = { macro: 'Macro', tactical: 'Price Trend', sentiment: 'News', structural_risk: 'Risk' }
         const lines = Object.entries(d.weights).map(([k, v]) => `${L[k] || k} — ${Math.round(v * 100)}%`)
         return text(['What the score is made of:', ...lines])
       }

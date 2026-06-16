@@ -5,7 +5,7 @@ import {
 // MAS/TAS/SAS are positive contributors; SRS is a risk penalty (shown red).
 const COLORS = { MAS: '#26e3a0', TAS: '#39b6f6', SAS: '#8ad0ff', SRS: '#ff6b7a' }
 const LABELS = {
-  MAS: 'Macro', TAS: 'Price trend', SAS: 'News', SRS: 'Risk',
+  MAS: 'Macro', TAS: 'Price Trend', SAS: 'News', SRS: 'Risk',
 }
 // component code -> weights dict key
 const WEIGHT_KEY = { MAS: 'macro', TAS: 'tactical', SAS: 'sentiment', SRS: 'structural_risk' }

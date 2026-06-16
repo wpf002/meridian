@@ -55,7 +55,7 @@ export default function HowToUse() {
             The big-picture backdrop — interest rates, inflation, volatility. Is the overall market
             environment a tailwind or a headwind right now?
           </Term>
-          <Term name="Price trend">
+          <Term name="Price Trend">
             How the stock's own price has been behaving — momentum and trend over recent history.
           </Term>
           <Term name="News">
