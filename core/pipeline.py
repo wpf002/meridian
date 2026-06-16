@@ -19,7 +19,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from config.settings import DB_PATH
-from core.signal_loader import load_signals_for
 from core.signal_harmonizer import SignalHarmonizer, HarmonizedSignal
 from core.scoring_engine import ScoringEngine, ACSResult
 from core.priority_engine import PriorityEngine, PrioritizedEntity
@@ -188,17 +187,22 @@ class MeridianPipeline:
         self,
         tickers: list[str],
         persist: bool = True,
+        source=None,
     ) -> tuple[list[ScanResult], list[tuple[str, str]]]:
         """
-        Scan every ticker that has a manual signal file. Tickers without one are
-        skipped and reported. Returns (scans, skipped) where skipped is a list of
-        (ticker, reason). Scans are returned ranked by ACS descending.
+        Scan every ticker that has signals from `source` (default: manual files).
+        Tickers without signals are skipped and reported. Returns (scans, skipped)
+        where skipped is a list of (ticker, reason). Scans are ranked by ACS desc.
         """
+        if source is None:
+            from core.signal_source import ManualSignalSource
+            source = ManualSignalSource()
+
         scans: list[ScanResult] = []
         skipped: list[tuple[str, str]] = []
 
         for ticker in tickers:
-            signals, error = load_signals_for(ticker)
+            signals, error = source.for_ticker(ticker)
             if error:
                 skipped.append((ticker, error))
                 continue

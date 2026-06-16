@@ -18,10 +18,11 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 from interface.console import console
-from config.settings import DB_PATH, DATA_INPUT_PATH, LOG_PATH
+from config.settings import DB_PATH, DATA_INPUT_PATH, LOG_PATH, SYNTRACKR_ENABLED
 from governance.model_registry import ModelRegistry
 from core.pipeline import MeridianPipeline
-from core.signal_loader import load_signals_for, signal_file_path
+from core.signal_loader import signal_file_path
+from core.signal_source import default_source
 from classification.asset_universe import AssetUniverse
 from classification.seed_universe import seed_universe
 from portfolio.constructor import PortfolioConstructor
@@ -90,6 +91,14 @@ class MeridianCore:
         # Built lazily so the DB/model registry exist before the pipeline
         # snapshots active weights.
         self._pipeline = None
+        # Choose where signals come from: AURORA (with manual fallback) when
+        # enabled and reachable, otherwise manual files.
+        llm = None
+        try:
+            llm = get_client()
+        except RuntimeError:
+            pass
+        self.signal_source, self.source_label = default_source(llm_client=llm)
 
     @property
     def pipeline(self) -> MeridianPipeline:
@@ -98,7 +107,7 @@ class MeridianCore:
         return self._pipeline
 
     def cmd_scan(self, ticker: str):
-        signals, error = load_signals_for(ticker)
+        signals, error = self.signal_source.for_ticker(ticker)
         if error:
             console.print(f"[red]{error}[/red]")
             console.print(
@@ -113,12 +122,24 @@ class MeridianCore:
 
     def cmd_recommend(self):
         tickers = AssetUniverse().tickers()
-        scans, skipped = self.pipeline.run_universe(tickers)
-        render_recommend(scans, skipped)
+        scans, skipped = self.pipeline.run_universe(tickers, source=self.signal_source)
+        tlh = {}
+        if SYNTRACKR_ENABLED:
+            try:
+                from integrations import syntrackr
+                tlh = syntrackr.build_overlay(tickers, self._syntrackr_source())
+            except Exception:
+                tlh = {}
+        render_recommend(scans, skipped, tlh=tlh)
+
+    def _syntrackr_source(self):
+        """Override point for a live Syntrackr client; mock used until wired."""
+        from integrations.syntrackr import MockSyntrackrSource
+        return MockSyntrackrSource()
 
     def cmd_build_portfolio(self):
         universe = AssetUniverse()
-        scans, skipped = self.pipeline.run_universe(universe.tickers())
+        scans, skipped = self.pipeline.run_universe(universe.tickers(), source=self.signal_source)
         if not scans:
             console.print("[yellow]No scored assets — cannot build a portfolio.[/yellow]")
             return
@@ -146,8 +167,8 @@ class MeridianCore:
             console.print(f"[dim]{len(skipped)} asset(s) skipped (no signal file).[/dim]")
 
     def cmd_compare(self, ticker_a: str, ticker_b: str):
-        signals_a, err_a = load_signals_for(ticker_a)
-        signals_b, err_b = load_signals_for(ticker_b)
+        signals_a, err_a = self.signal_source.for_ticker(ticker_a)
+        signals_b, err_b = self.signal_source.for_ticker(ticker_b)
         if err_a:
             console.print(f"[red]{err_a}[/red]")
             return
@@ -173,7 +194,7 @@ class MeridianCore:
         universe = AssetUniverse()
         universe_data = []
         for asset in universe.get_all():
-            signals, error = load_signals_for(asset["ticker"])
+            signals, error = self.signal_source.for_ticker(asset["ticker"])
             if error:
                 continue
             universe_data.append({
@@ -191,8 +212,8 @@ class MeridianCore:
         render_scenario(report)
 
     def _universe_scans(self):
-        """Run the full active universe, returning (scans, skipped)."""
-        return self.pipeline.run_universe(AssetUniverse().tickers())
+        """Run the full active universe through the configured signal source."""
+        return self.pipeline.run_universe(AssetUniverse().tickers(), source=self.signal_source)
 
     def cmd_brief(self):
         scans, skipped = self._universe_scans()
@@ -332,6 +353,8 @@ def main():
     ensure_universe_seeded()
 
     core = MeridianCore()
+    src_color = "green" if core.source_label == "AURORA" else "cyan"
+    console.print(f"[{src_color}]Signal source:[/{src_color}] {core.source_label}")
 
     if args.status:
         core.cmd_status()

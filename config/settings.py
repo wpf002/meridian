@@ -54,3 +54,13 @@ ALERT_THRESHOLDS = {
 MIN_SAMPLE_SIZE = int(os.getenv("MIN_SAMPLE_SIZE", "20"))   # resolved outcomes before adjusting
 WEIGHT_NUDGE = float(os.getenv("WEIGHT_NUDGE", "0.02"))     # max weight shift per cycle
 OUTCOME_PERIOD_DAYS = int(os.getenv("OUTCOME_PERIOD_DAYS", "90"))
+
+# AURORA integration (the bloomberg terminal). When enabled and reachable,
+# Meridian ingests signals from AURORA's API; manual JSON remains the fallback.
+AURORA_ENABLED = os.getenv("AURORA_ENABLED", "false").lower() in ("1", "true", "yes")
+AURORA_BASE_URL = os.getenv("AURORA_BASE_URL", "http://localhost:8000/api")
+
+# Syntrackr integration (tax-loss harvesting). When enabled, harvest candidates
+# are surfaced as an overlay on the recommendations table.
+SYNTRACKR_ENABLED = os.getenv("SYNTRACKR_ENABLED", "false").lower() in ("1", "true", "yes")
+SYNTRACKR_BASE_URL = os.getenv("SYNTRACKR_BASE_URL", "http://localhost:8100/api")

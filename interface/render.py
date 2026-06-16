@@ -116,13 +116,14 @@ def _report_skipped(skipped: list) -> None:
         )
 
 
-def render_recommend(scans: list[ScanResult], skipped: list = None) -> None:
+def render_recommend(scans: list[ScanResult], skipped: list = None, tlh: dict = None) -> None:
     """Ranked universe table: rank, ticker, ACS, tier, classification, conviction, flags."""
     if not scans:
         console.print("[yellow]No assets scored — provide signal files for the universe.[/yellow]")
         _report_skipped(skipped or [])
         return
 
+    tlh = tlh or {}
     table = Table(title="MERIDIAN — Universe Recommendations", box=box.SIMPLE_HEAVY)
     table.add_column("#", justify="right", style="dim")
     table.add_column("Ticker", style="bold")
@@ -132,10 +133,12 @@ def render_recommend(scans: list[ScanResult], skipped: list = None) -> None:
     table.add_column("Conviction")
     table.add_column("Action")
     table.add_column("Flags", style="yellow")
+    if tlh:
+        table.add_column("Tax-loss", style="magenta")
 
     for i, s in enumerate(scans, start=1):
         action_style = _ACTION_STYLE.get(s.decision.action, "white")
-        table.add_row(
+        row = [
             str(i),
             s.entity,
             f"{s.result.acs:.3f}",
@@ -144,9 +147,20 @@ def render_recommend(scans: list[ScanResult], skipped: list = None) -> None:
             _conv(s.confidence["conviction"]),
             f"[{action_style}]{s.decision.action}[/{action_style}]",
             ", ".join(s.decision.flags) if s.decision.flags else "[dim]—[/dim]",
-        )
+        ]
+        if tlh:
+            c = tlh.get(s.entity)
+            if c and c.safe_to_harvest:
+                row.append(f"harvest ${c.unrealized_loss:,.0f}")
+            elif c and c.wash_sale:
+                row.append("[dim]wash-sale[/dim]")
+            else:
+                row.append("[dim]—[/dim]")
+        table.add_row(*row)
 
     console.print(table)
+    if tlh:
+        console.print("[dim]Tax-loss overlay from Syntrackr — harvest candidates in the active universe.[/dim]")
     _report_skipped(skipped or [])
 
 
