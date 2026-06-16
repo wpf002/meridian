@@ -3,19 +3,81 @@
 @tailwind utilities;
 
 @layer base {
+  html,
+  body,
+  #root {
+    @apply h-full;
+  }
   body {
     @apply bg-base text-ink font-sans antialiased;
+    /* Faint console grid + a soft green/blue horizon glow */
+    background-image:
+      radial-gradient(1100px 480px at 78% -10%, rgba(57, 182, 246, 0.08), transparent 60%),
+      radial-gradient(900px 520px at 8% 108%, rgba(38, 227, 160, 0.07), transparent 60%),
+      linear-gradient(to right, rgba(18, 40, 52, 0.35) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(18, 40, 52, 0.35) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
+    background-attachment: fixed;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #16313f;
+    border-radius: 6px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #1d4256;
   }
 }
 
 @layer components {
   .card {
-    @apply bg-panel border border-edge rounded-lg;
+    @apply bg-panel/80 border border-edge/70 rounded-lg backdrop-blur-sm;
+  }
+  .card-head {
+    @apply px-4 py-2.5 border-b border-edge/70 text-[13px] font-semibold tracking-wide text-ink/90 uppercase;
   }
   .th {
-    @apply text-left text-xs uppercase tracking-wide text-muted font-medium px-3 py-2 border-b border-edge;
+    @apply text-left text-[11px] uppercase tracking-[0.12em] text-muted font-semibold px-3 py-2.5 border-b border-edge/70;
   }
   .td {
-    @apply px-3 py-2 border-b border-edge/60 text-sm;
+    @apply px-3 py-2.5 border-b border-edge/40 text-sm;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded border border-edge/70 bg-raised/60 px-2 py-1 text-xs font-mono;
+  }
+  .label {
+    @apply text-[11px] uppercase tracking-[0.14em] text-muted font-semibold;
+  }
+  .btn {
+    @apply inline-flex items-center gap-2 rounded border border-edge/80 bg-raised/60 px-3 py-1.5 text-sm
+           text-ink/90 transition-colors hover:border-green/50 hover:text-green disabled:opacity-40
+           disabled:hover:border-edge/80 disabled:hover:text-ink/90;
+  }
+  .btn-active {
+    @apply border-green/60 text-green shadow-glow;
+  }
+  /* subtle blinking caret for the console */
+  .caret::after {
+    content: '▋';
+    @apply text-green;
+    animation: blink 1.1s steps(1) infinite;
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
   }
 }

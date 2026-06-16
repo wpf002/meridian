@@ -1,56 +1,43 @@
 import { useEffect, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { getStatus, getAlerts, ackAlert } from '../api/client.js'
-import { Loading, ErrorState } from '../components/states.jsx'
-import { pct } from '../lib/format.js'
+import { Loading, ErrorState, PageTitle } from '../components/states.jsx'
+import { pct, humanize, SEVERITY_COLOR } from '../lib/format.js'
 
-const SEVERITY = {
-  high: 'border-avoid/50 text-avoid',
-  medium: 'border-tactical/50 text-tactical',
-  low: 'border-edge text-muted',
-}
 const WEIGHT_COLOR = {
-  macro: '#34d399', tactical: '#22d3ee', sentiment: '#7c93ff', structural_risk: '#f87171',
+  macro: '#26e3a0', tactical: '#39b6f6', sentiment: '#8ad0ff', structural_risk: '#ff6b7a',
 }
 
 function AlertsPanel() {
   const [alerts, setAlerts] = useState(null)
   const load = () => getAlerts().then((d) => setAlerts(d.alerts)).catch(() => setAlerts([]))
   useEffect(() => { load() }, [])
-
   const ack = (id) => ackAlert(id).then(load)
 
   if (!alerts) return <Loading label="Loading alerts…" />
   return (
     <div className="card overflow-hidden">
-      <div className="px-4 py-2 border-b border-edge font-medium flex justify-between">
-        <span>Active alerts</span>
-        <span className="text-muted text-sm">{alerts.length}</span>
+      <div className="card-head flex justify-between">
+        <span>Active Alerts</span>
+        <span className="text-muted">{alerts.length}</span>
       </div>
       {alerts.length === 0 ? (
-        <div className="px-4 py-3 text-core text-sm">No active alerts.</div>
+        <div className="px-4 py-3 text-green text-sm">No active alerts.</div>
       ) : (
-        <ul className="divide-y divide-edge/60">
+        <ul className="divide-y divide-edge/50">
           {alerts.map((a) => (
             <li key={a.id} className="px-4 py-3 flex items-start gap-3">
-              <span className={`text-xs font-mono border rounded px-2 py-0.5 ${SEVERITY[a.severity] || ''}`}>
-                {a.severity.toUpperCase()}
-              </span>
+              <span className={`chip ${SEVERITY_COLOR[a.severity] || ''}`}>{a.severity.toUpperCase()}</span>
               <div className="flex-1">
                 <div className="text-sm">{a.message}</div>
-                <div className="text-xs text-muted">{a.alert_type} · {a.entity || '—'}</div>
+                <div className="text-xs text-muted">{humanize(a.alert_type)} · {a.entity || '—'}</div>
               </div>
-              <button
-                onClick={() => ack(a.id)}
-                className="text-xs px-2 py-1 rounded border border-edge text-muted hover:text-ink"
-              >
-                ack
-              </button>
+              <button onClick={() => ack(a.id)} className="btn py-1 text-xs">Ack</button>
             </li>
           ))}
         </ul>
       )}
-      <div className="px-4 py-2 text-xs text-muted border-t border-edge">
+      <div className="px-4 py-2 text-xs text-faint border-t border-edge/70">
         Alerts are evaluated when a daily brief runs.
       </div>
     </div>
@@ -73,29 +60,31 @@ export default function Status() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-1">Status</h1>
-      <p className="text-muted mb-6">
-        Model <span className="font-mono text-ink">v{data.model_version}</span> · signal source{' '}
-        <span className={`font-mono ${data.signal_source === 'AURORA' ? 'text-core' : 'text-ink'}`}>
-          {data.signal_source}
-        </span>
-      </p>
+      <PageTitle title="Status" sub="Model, scoring weights, accuracy & alerts." />
 
       <div className="grid md:grid-cols-2 gap-4 mb-4">
         <div className="card p-5">
-          <div className="font-medium mb-3">Scoring weights</div>
+          <div className="card-head -mx-5 -mt-5 mb-4 rounded-t-lg">Scoring Weights</div>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={weights} layout="vertical" margin={{ left: 24 }}>
-              <XAxis type="number" domain={[0, 0.5]} stroke="#8a93a6" fontSize={12} />
-              <YAxis type="category" dataKey="name" stroke="#8a93a6" width={90} fontSize={11} />
+            <BarChart data={weights} layout="vertical" margin={{ left: 36 }}>
+              <XAxis type="number" domain={[0, 0.5]} stroke="#5d7689" fontSize={12} />
+              <YAxis
+                type="category"
+                dataKey="name"
+                stroke="#5d7689"
+                width={104}
+                fontSize={11}
+                tickFormatter={humanize}
+              />
               <Tooltip
-                cursor={{ fill: '#222a3955' }}
-                contentStyle={{ background: '#121722', border: '1px solid #222a39', borderRadius: 8 }}
+                cursor={{ fill: '#0b192540' }}
+                contentStyle={{ background: '#08111a', border: '1px solid #15303d', borderRadius: 8 }}
                 formatter={(v) => v.toFixed(2)}
+                labelFormatter={humanize}
               />
               <Bar dataKey="value" radius={[0, 3, 3, 0]}>
                 {weights.map((w) => (
-                  <Cell key={w.name} fill={WEIGHT_COLOR[w.name] || '#8a93a6'} />
+                  <Cell key={w.name} fill={WEIGHT_COLOR[w.name] || '#5d7689'} />
                 ))}
               </Bar>
             </BarChart>
@@ -103,7 +92,7 @@ export default function Status() {
         </div>
 
         <div className="card p-5">
-          <div className="font-medium mb-3">Accuracy by classification</div>
+          <div className="card-head -mx-5 -mt-5 mb-4 rounded-t-lg">Accuracy by Classification</div>
           {accuracy.length === 0 ? (
             <div className="text-muted text-sm">
               No resolved outcomes yet — resolve returns to populate this.
@@ -115,7 +104,7 @@ export default function Status() {
                   <th className="th">Class</th>
                   <th className="th text-right">Accuracy</th>
                   <th className="th text-right">Resolved</th>
-                  <th className="th text-right">Avg return</th>
+                  <th className="th text-right">Avg Return</th>
                 </tr>
               </thead>
               <tbody>
@@ -137,11 +126,11 @@ export default function Status() {
 
       <div className="grid md:grid-cols-2 gap-4">
         <div className="card overflow-hidden">
-          <div className="px-4 py-2 border-b border-edge font-medium">Model version history</div>
-          <ul className="divide-y divide-edge/60">
+          <div className="card-head">Model Version History</div>
+          <ul className="divide-y divide-edge/50">
             {data.model_history.map((m, i) => (
-              <li key={i} className="px-4 py-2 text-sm">
-                <span className="font-mono font-bold">v{m.version}</span>
+              <li key={i} className="px-4 py-2.5 text-sm">
+                <span className="font-mono font-bold text-green">v{m.version}</span>
                 <span className="text-muted ml-2">{m.notes}</span>
               </li>
             ))}

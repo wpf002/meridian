@@ -3,7 +3,7 @@ import {
 } from 'recharts'
 
 // MAS/TAS/SAS are positive contributors; SRS is a risk penalty (shown red).
-const COLORS = { MAS: '#34d399', TAS: '#22d3ee', SAS: '#7c93ff', SRS: '#f87171' }
+const COLORS = { MAS: '#26e3a0', TAS: '#39b6f6', SAS: '#8ad0ff', SRS: '#ff6b7a' }
 const LABELS = {
   MAS: 'Macro', TAS: 'Tactical', SAS: 'Sentiment', SRS: 'Struct. Risk',
 }
@@ -22,17 +22,17 @@ export default function AcsComponentsChart({ components, weights }) {
       <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
         <XAxis
           dataKey="name"
-          stroke="#8a93a6"
+          stroke="#5d7689"
           tickLine={false}
           tickFormatter={(n) => LABELS[n] || n}
           fontSize={12}
         />
-        <YAxis domain={[0, 1]} stroke="#8a93a6" tickLine={false} fontSize={12} />
-        <ReferenceLine y={0} stroke="#222a39" />
+        <YAxis domain={[0, 1]} stroke="#5d7689" tickLine={false} fontSize={12} />
+        <ReferenceLine y={0} stroke="#15303d" />
         <Tooltip
-          cursor={{ fill: '#222a3955' }}
-          contentStyle={{ background: '#121722', border: '1px solid #222a39', borderRadius: 8 }}
-          labelStyle={{ color: '#e6e9ef' }}
+          cursor={{ fill: '#0b192540' }}
+          contentStyle={{ background: '#08111a', border: '1px solid #15303d', borderRadius: 8 }}
+          labelStyle={{ color: '#dceaf0' }}
           formatter={(v, _n, p) => {
             const w = weights?.[WEIGHT_KEY[p.payload.name]]
             return [`${v.toFixed(3)}${w != null ? `  (weight ${w})` : ''}`, LABELS[p.payload.name]]

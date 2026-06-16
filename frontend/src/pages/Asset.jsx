@@ -4,13 +4,13 @@ import { getScan, getUniverse, compareAssets } from '../api/client.js'
 import Badge from '../components/Badge.jsx'
 import AcsComponentsChart from '../components/AcsComponentsChart.jsx'
 import { Loading, ErrorState } from '../components/states.jsx'
-import { CONVICTION_COLOR, ACTION_COLOR, deltaColor } from '../lib/format.js'
+import { CONVICTION_COLOR, ACTION_COLOR, deltaColor, humanize } from '../lib/format.js'
 
 function Stat({ label, value, className = '' }) {
   return (
     <div className="card px-4 py-3">
-      <div className="text-xs text-muted uppercase tracking-wide">{label}</div>
-      <div className={`text-lg font-mono mt-0.5 ${className}`}>{value}</div>
+      <div className="label">{label}</div>
+      <div className={`text-lg font-mono mt-1 ${className}`}>{value}</div>
     </div>
   )
 }
@@ -30,10 +30,7 @@ function ComparePanel({ ticker }) {
   const run = () => {
     if (!other) return
     setBusy(true)
-    compareAssets(ticker, other)
-      .then(setResult)
-      .catch(() => setResult(null))
-      .finally(() => setBusy(false))
+    compareAssets(ticker, other).then(setResult).catch(() => setResult(null)).finally(() => setBusy(false))
   }
 
   const rows = result
@@ -42,29 +39,25 @@ function ComparePanel({ ticker }) {
         ['Macro', result.a.components.mas, result.b.components.mas, result.delta.mas],
         ['Tactical', result.a.components.tas, result.b.components.tas, result.delta.tas],
         ['Sentiment', result.a.components.sas, result.b.components.sas, result.delta.sas],
-        ['Struct. Risk', result.a.components.srs, result.b.components.srs, result.delta.srs],
+        ['Structural Risk', result.a.components.srs, result.b.components.srs, result.delta.srs],
       ]
     : []
 
   return (
     <div className="card p-5">
-      <div className="font-medium mb-3">Compare</div>
+      <div className="card-head -mx-5 -mt-5 mb-4 rounded-t-lg">Compare</div>
       <div className="flex items-center gap-2 mb-4">
         <select
           value={other}
           onChange={(e) => setOther(e.target.value)}
-          className="bg-base border border-edge rounded px-2 py-1 text-sm"
+          className="bg-base border border-edge rounded px-2 py-1.5 text-sm font-mono focus:border-green/60 outline-none"
         >
           <option value="">Select asset…</option>
           {tickers.map((t) => (
             <option key={t} value={t}>{t}</option>
           ))}
         </select>
-        <button
-          onClick={run}
-          disabled={!other || busy}
-          className="px-3 py-1 rounded bg-accent/20 border border-accent/40 text-sm disabled:opacity-40"
-        >
+        <button onClick={run} disabled={!other || busy} className="btn">
           {busy ? 'Comparing…' : 'Compare'}
         </button>
       </div>
@@ -116,25 +109,23 @@ export default function Asset() {
 
   return (
     <div>
-      <Link to="/" className="text-muted text-sm hover:text-ink">← Recommendations</Link>
+      <Link to="/" className="text-muted text-sm hover:text-green font-mono">← Recommendations</Link>
 
       {error ? (
-        <div className="mt-4">
-          <ErrorState error={error.response?.data?.detail || error} />
-        </div>
+        <div className="mt-4"><ErrorState error={error.response?.data?.detail || error} /></div>
       ) : !scan ? (
         <div className="mt-4"><Loading label={`Scoring ${ticker}…`} /></div>
       ) : (
         <>
-          <div className="flex items-end gap-4 mt-2 mb-6">
-            <h1 className="text-3xl font-bold font-mono">{scan.entity}</h1>
+          <div className="flex flex-wrap items-center gap-4 mt-3 mb-6">
+            <h1 className="text-3xl font-bold font-mono tracking-tight">{scan.entity}</h1>
             <Badge value={scan.classification} />
-            <span className="text-muted text-sm">Tier {scan.tier}</span>
-            <span className={`text-sm font-mono ${ACTION_COLOR[scan.action] || ''}`}>{scan.action}</span>
+            <span className="chip text-muted">Tier {scan.tier}</span>
+            <span className={`chip ${ACTION_COLOR[scan.action] || ''}`}>{scan.action}</span>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <Stat label="ACS" value={scan.acs.toFixed(3)} className="text-2xl" />
+            <Stat label="ACS" value={scan.acs.toFixed(3)} className="text-2xl text-green" />
             <Stat label="Conviction" value={scan.conviction} className={CONVICTION_COLOR[scan.conviction]} />
             <Stat label="Confidence" value={scan.confidence.toFixed(2)} />
             <Stat label="Signals" value={scan.signal_count} />
@@ -142,15 +133,15 @@ export default function Asset() {
 
           <div className="grid md:grid-cols-2 gap-4 mb-6">
             <div className="card p-5">
-              <div className="font-medium mb-3">ACS components</div>
+              <div className="card-head -mx-5 -mt-5 mb-4 rounded-t-lg">ACS Components</div>
               <AcsComponentsChart components={scan.components} weights={scan.weights} />
             </div>
 
             <div className="card p-5">
-              <div className="font-medium mb-3">Signals & flags</div>
-              <dl className="text-sm space-y-2">
+              <div className="card-head -mx-5 -mt-5 mb-4 rounded-t-lg">Signals & Flags</div>
+              <dl className="text-sm space-y-2.5">
                 <div className="flex justify-between">
-                  <dt className="text-muted">Signal agreement</dt>
+                  <dt className="text-muted">Signal Agreement</dt>
                   <dd className="font-mono">{scan.signal_agreement.toFixed(2)}</dd>
                 </div>
                 <div className="flex justify-between">
@@ -158,16 +149,14 @@ export default function Asset() {
                   <dd className="font-mono">v{scan.model_version}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted mb-1">Flags</dt>
-                  <dd className="flex flex-wrap gap-1">
+                  <dt className="text-muted mb-1.5">Flags</dt>
+                  <dd className="flex flex-wrap gap-1.5">
                     {scan.flags.length ? (
                       scan.flags.map((f) => (
-                        <span key={f} className="text-tactical text-xs border border-tactical/40 rounded px-2 py-0.5">
-                          {f}
-                        </span>
+                        <span key={f} className="chip text-tactical border-tactical/40">{humanize(f)}</span>
                       ))
                     ) : (
-                      <span className="text-muted text-xs">none</span>
+                      <span className="text-faint text-xs">None</span>
                     )}
                   </dd>
                 </div>
@@ -188,8 +177,8 @@ export default function Asset() {
           )}
 
           <div className="card p-4 mb-6">
-            <div className="text-xs text-muted uppercase tracking-wide mb-1">Rationale</div>
-            <div className="text-sm">{scan.rationale}</div>
+            <div className="label mb-1.5">Rationale</div>
+            <div className="text-sm font-mono text-ink/90">{scan.rationale}</div>
           </div>
 
           <ComparePanel ticker={scan.entity} />
