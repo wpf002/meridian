@@ -136,7 +136,7 @@ export default function Scenarios() {
               </table>
             </div>
 
-            <div className="card overflow-hidden h-fit">
+            <div className="card overflow-hidden h-fit self-start lg:sticky lg:top-4">
               <div className="card-head">Worst-case hit by bucket</div>
               <table className="w-full">
                 <thead>
