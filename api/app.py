@@ -9,8 +9,10 @@ Run with:  python -m api          (or: uvicorn api.app:app --reload)
 Docs at:   http://localhost:8800/docs
 """
 
+import time
 import asyncio
 import logging
+import threading
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Query
@@ -55,6 +57,9 @@ async def _warm_loop(app: FastAPI, interval: int):
             if UNIVERSE_SCAN_LIMIT:
                 tickers = tickers[:UNIVERSE_SCAN_LIMIT]
             refreshed = await asyncio.to_thread(source.warm, tickers)
+            # Rebuild the cached scan while the sentiment cache is hot, so the
+            # next page load is instant rather than paying for a fresh scan.
+            await asyncio.to_thread(_scan_universe, True)
             log.info("universe warmer refreshed %s tickers", refreshed)
         except asyncio.CancelledError:
             raise
@@ -110,9 +115,23 @@ def _source():
     return app.state.source
 
 
-def _scan_universe():
-    tickers = AssetUniverse().tickers()
-    return MeridianPipeline().run_universe(tickers, source=_source())
+# Cache the assembled universe scan so recommend/portfolio/brief don't each run a
+# fresh scan on every page load. Guarded by a lock so concurrent requests share
+# one scan instead of stampeding.
+_scan_cache = {"at": 0.0, "data": None}
+_scan_lock = threading.Lock()
+
+
+def _scan_universe(force: bool = False):
+    from config.settings import UNIVERSE_RESULT_TTL
+    with _scan_lock:
+        cached = _scan_cache["data"]
+        if not force and cached is not None and (time.time() - _scan_cache["at"]) < UNIVERSE_RESULT_TTL:
+            return cached
+        data = MeridianPipeline().run_universe(AssetUniverse().tickers(), source=_source())
+        _scan_cache["at"] = time.time()
+        _scan_cache["data"] = data
+        return data
 
 
 # --- meta ------------------------------------------------------------------

@@ -40,6 +40,14 @@ SLEEVE_TARGETS = {
     "tactical": float(os.getenv("SLEEVE_TACTICAL", "0.10")),
 }
 
+# Plain-language display names for the sleeves (UI + CLI + warnings all use these).
+SLEEVE_LABELS = {
+    "core": "Foundation",
+    "growth": "Growth",
+    "defensive": "Protection",
+    "tactical": "Short-term",
+}
+
 # Asset Classifications
 CLASSIFICATIONS = ["CORE", "HIGH-ASYMMETRY", "TACTICAL", "AVOID"]
 
@@ -72,6 +80,9 @@ UNIVERSE_SCAN_LIMIT = int(os.getenv("UNIVERSE_SCAN_LIMIT", "12"))
 # background so the sentiment cache never goes cold and every page load gets the
 # fast warm path. Keep it under SENTIMENT_CACHE_TTL. 0 disables the warmer.
 UNIVERSE_REFRESH_SECONDS = int(os.getenv("UNIVERSE_REFRESH_SECONDS", "540"))
+# The API caches the assembled universe scan (used by recommend/portfolio/brief)
+# for this long so flipping between pages is instant instead of a fresh scan.
+UNIVERSE_RESULT_TTL = int(os.getenv("UNIVERSE_RESULT_TTL", "120"))
 
 # Syntrackr integration (tax-loss harvesting). When enabled, harvest candidates
 # are surfaced as an overlay on the recommendations table.

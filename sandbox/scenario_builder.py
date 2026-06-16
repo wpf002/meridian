@@ -136,6 +136,53 @@ _register(Scenario(
 ))
 
 
+_register(Scenario(
+    name="Inflation Spike",
+    description="CPI reaccelerates; the Fed stays higher-for-longer and multiples compress.",
+    regime=INFLATIONARY,
+    impacts=[
+        ScenarioImpact("macro", "bearish", 0.7, 0.85, label="sticky inflation"),
+        ScenarioImpact("tactical", "bearish", 0.5, 0.75, sectors=["Technology"], label="multiple compression"),
+        ScenarioImpact("sentiment", "bullish", 0.4, 0.7, sectors=["Energy"], label="pricing power"),
+    ],
+))
+
+_register(Scenario(
+    name="Recession",
+    description="Growth rolls over; earnings estimates get cut and defensives outperform.",
+    regime=RISK_OFF,
+    impacts=[
+        ScenarioImpact("macro", "bearish", 0.8, 0.9, label="growth contraction"),
+        ScenarioImpact("tactical", "bearish", 0.6, 0.8, label="earnings cuts"),
+        ScenarioImpact("structural_risk", "bullish", 0.5, 0.8, sectors=["Financials"], label="credit losses"),
+        ScenarioImpact("sentiment", "bullish", 0.3, 0.65, sectors=["Consumer Staples", "Utilities"],
+                       label="defensive bid"),
+    ],
+))
+
+_register(Scenario(
+    name="Tech Selloff",
+    description="Crowded mega-cap tech unwinds; high-multiple growth names lead the drop.",
+    regime=RISK_OFF,
+    impacts=[
+        ScenarioImpact("tactical", "bearish", 0.8, 0.88, sectors=["Technology"], label="momentum unwind"),
+        ScenarioImpact("sentiment", "bearish", 0.6, 0.8, sectors=["Technology"], label="narrative reversal"),
+        ScenarioImpact("structural_risk", "bullish", 0.4, 0.7, sectors=["Technology"], label="positioning risk"),
+    ],
+))
+
+_register(Scenario(
+    name="Soft Landing",
+    description="Inflation cools without a recession; the Fed eases and risk assets grind higher.",
+    regime=RISK_ON,
+    impacts=[
+        ScenarioImpact("macro", "bullish", 0.6, 0.8, label="goldilocks backdrop"),
+        ScenarioImpact("tactical", "bullish", 0.5, 0.78, label="broadening rally"),
+        ScenarioImpact("sentiment", "bullish", 0.4, 0.72, label="improving confidence"),
+    ],
+))
+
+
 def get_scenario(name: str) -> Optional[Scenario]:
     """Look up a scenario by name (case/punctuation-insensitive)."""
     return SCENARIOS.get(_slugify(name))

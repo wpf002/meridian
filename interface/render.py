@@ -36,6 +36,23 @@ _TIER_LABEL = {
 def _tier(classification: str) -> str:
     return _TIER_LABEL.get(classification, classification)
 
+
+_ACTION_LABEL = {"ESCALATE": "Buy", "MONITOR": "Watch", "RESTRICT": "Avoid", "LOG": "Neutral"}
+
+
+def _action(action: str) -> str:
+    return _ACTION_LABEL.get(action, action.title())
+
+
+def _score(acs: float) -> str:
+    """0–1 engine value shown as a 0–100 score."""
+    return str(round(acs * 100))
+
+
+def _sleeve(key: str) -> str:
+    from config.settings import SLEEVE_LABELS
+    return SLEEVE_LABELS.get(key, key.capitalize())
+
 _ACTION_STYLE = {
     "ESCALATE": "bold green",
     "MONITOR": "yellow",
@@ -57,29 +74,28 @@ def render_scan(scan: ScanResult) -> None:
 
     header = (
         f"[bold white]{scan.entity}[/bold white]   "
-        f"ACS [bold]{r.acs:.3f}[/bold]   "
+        f"Score [bold]{_score(r.acs)}[/bold]/100   "
         f"[{cls_style}]{_tier(scan.classification)}[/{cls_style}]   "
-        f"Priority {scan.prioritized.tier}   "
-        f"[{action_style}]{scan.decision.action}[/{action_style}]   "
-        f"Conviction [{conv_style}]{conf['conviction']}[/{conv_style}]"
+        f"[{action_style}]{_action(scan.decision.action)}[/{action_style}]   "
+        f"Confidence [{conv_style}]{conf['conviction'].title()}[/{conv_style}]"
     )
     console.print(Panel(header, title="MERIDIAN SCAN", box=box.ROUNDED, expand=False))
 
-    # ACS component breakdown
+    # What drives the Score
     weights = r.weights_used
     table = Table(box=box.SIMPLE_HEAVY, show_edge=False)
-    table.add_column("Component", style="cyan")
+    table.add_column("Ingredient", style="cyan")
     table.add_column("Score", justify="right")
     table.add_column("Weight", justify="right", style="dim")
-    table.add_row("Macro Alignment (MAS)", f"{r.mas:.3f}", f"{weights.get('macro', 0):.2f}")
-    table.add_row("Tactical Alignment (TAS)", f"{r.tas:.3f}", f"{weights.get('tactical', 0):.2f}")
-    table.add_row("Sentiment Alignment (SAS)", f"{r.sas:.3f}", f"{weights.get('sentiment', 0):.2f}")
+    table.add_row("Macro", _score(r.mas), f"{weights.get('macro', 0):.2f}")
+    table.add_row("Price trend", _score(r.tas), f"{weights.get('tactical', 0):.2f}")
+    table.add_row("News", _score(r.sas), f"{weights.get('sentiment', 0):.2f}")
     table.add_row(
-        "Structural Risk (SRS)",
-        f"[red]-{r.srs:.3f}[/red]",
+        "Risk",
+        f"[red]-{_score(r.srs)}[/red]",
         f"{weights.get('structural_risk', 0):.2f}",
     )
-    table.add_row("[bold]Composite (ACS)[/bold]", f"[bold]{r.acs:.3f}[/bold]", "")
+    table.add_row("[bold]Overall Score[/bold]", f"[bold]{_score(r.acs)}[/bold]", "")
     console.print(table)
 
     # Confidence / signal context
@@ -119,7 +135,7 @@ def _cls(classification: str) -> str:
 
 def _conv(label: str) -> str:
     style = _CONVICTION_STYLE.get(label, "white")
-    return f"[{style}]{label}[/{style}]"
+    return f"[{style}]{label.title()}[/{style}]"
 
 
 def _report_skipped(skipped: list) -> None:
@@ -141,11 +157,11 @@ def render_recommend(scans: list[ScanResult], skipped: list = None, tlh: dict = 
     table = Table(title="MERIDIAN — Universe Recommendations", box=box.SIMPLE_HEAVY)
     table.add_column("#", justify="right", style="dim")
     table.add_column("Ticker", style="bold")
-    table.add_column("ACS", justify="right")
+    table.add_column("Score", justify="right")
     table.add_column("Tier")
-    table.add_column("Conviction")
-    table.add_column("Action")
-    table.add_column("Flags", style="yellow")
+    table.add_column("Confidence")
+    table.add_column("Signal")
+    table.add_column("Notes", style="yellow")
     if tlh:
         table.add_column("Tax-loss", style="magenta")
 
@@ -154,10 +170,10 @@ def render_recommend(scans: list[ScanResult], skipped: list = None, tlh: dict = 
         row = [
             str(i),
             s.entity,
-            f"{s.result.acs:.3f}",
+            _score(s.result.acs),
             _cls(s.classification),
             _conv(s.confidence["conviction"]),
-            f"[{action_style}]{s.decision.action}[/{action_style}]",
+            f"[{action_style}]{_action(s.decision.action)}[/{action_style}]",
             ", ".join(s.decision.flags) if s.decision.flags else "[dim]—[/dim]",
         ]
         if tlh:
@@ -192,15 +208,15 @@ def render_portfolio(portfolio: Portfolio) -> None:
         allocs = sorted(sleeves[sleeve], key=lambda a: a.weight, reverse=True)
         sleeve_weight = sum(a.weight for a in allocs)
         table = Table(
-            title=f"{sleeve.upper()} sleeve  ·  {sleeve_weight*100:.1f}%",
+            title=f"{_sleeve(sleeve)}  ·  {sleeve_weight*100:.1f}%",
             box=box.SIMPLE, title_justify="left",
         )
         table.add_column("Ticker", style="bold")
         table.add_column("Weight", justify="right")
-        table.add_column("ACS", justify="right")
+        table.add_column("Score", justify="right")
         table.add_column("Tier")
         for a in allocs:
-            table.add_row(a.ticker, f"{a.weight*100:.2f}%", f"{a.acs:.3f}", _cls(a.classification))
+            table.add_row(a.ticker, f"{a.weight*100:.2f}%", _score(a.acs), _cls(a.classification))
         console.print(table)
 
     console.print(f"  [bold]Total allocated:[/bold] {portfolio.total_weight()*100:.1f}%")
@@ -214,19 +230,19 @@ def render_compare(scan_a: ScanResult, scan_b: ScanResult) -> None:
     a, b = scan_a.result, scan_b.result
 
     table = Table(title=f"MERIDIAN COMPARE — {scan_a.entity} vs {scan_b.entity}", box=box.SIMPLE_HEAVY)
-    table.add_column("Component", style="cyan")
+    table.add_column("Ingredient", style="cyan")
     table.add_column(scan_a.entity, justify="right")
     table.add_column(scan_b.entity, justify="right")
     table.add_column("Δ", justify="right", style="dim")
 
     def row(label, va, vb):
-        table.add_row(label, f"{va:.3f}", f"{vb:.3f}", f"{va - vb:+.3f}")
+        table.add_row(label, _score(va), _score(vb), f"{round((va - vb) * 100):+d}")
 
-    row("Macro (MAS)", a.mas, b.mas)
-    row("Tactical (TAS)", a.tas, b.tas)
-    row("Sentiment (SAS)", a.sas, b.sas)
-    row("Structural Risk (SRS)", a.srs, b.srs)
-    row("Composite (ACS)", a.acs, b.acs)
+    row("Macro", a.mas, b.mas)
+    row("Price trend", a.tas, b.tas)
+    row("News", a.sas, b.sas)
+    row("Risk", a.srs, b.srs)
+    row("Score", a.acs, b.acs)
     table.add_row(
         "Tier",
         _cls(scan_a.classification),
@@ -234,7 +250,7 @@ def render_compare(scan_a: ScanResult, scan_b: ScanResult) -> None:
         "",
     )
     table.add_row(
-        "Conviction",
+        "Confidence",
         _conv(scan_a.confidence["conviction"]),
         _conv(scan_b.confidence["conviction"]),
         "",
@@ -244,33 +260,34 @@ def render_compare(scan_a: ScanResult, scan_b: ScanResult) -> None:
 
 
 def _delta(value: float) -> str:
-    """Color a signed delta: green up, red down."""
+    """Color a signed delta on the 0–100 score scale: green up, red down."""
+    pts = round(value * 100)
     if value > 0.0005:
-        return f"[green]{value:+.3f}[/green]"
+        return f"[green]{pts:+d}[/green]"
     if value < -0.0005:
-        return f"[red]{value:+.3f}[/red]"
-    return f"[dim]{value:+.3f}[/dim]"
+        return f"[red]{pts:+d}[/red]"
+    return f"[dim]{pts:+d}[/dim]"
 
 
 def render_scenario(report: ScenarioReport) -> None:
     """Render a full scenario impact report: header, per-entity table, sleeve drawdown."""
     pb, ps = report.portfolio_baseline_acs, report.portfolio_base_acs
     header = (
-        f"[bold white]{report.scenario_name}[/bold white]\n"
-        f"Stressed regime: [yellow]{report.scenario_regime}[/yellow]   "
-        f"Current regime (inferred): [cyan]{report.current_regime}[/cyan]\n"
-        f"Portfolio ACS (avg): {pb:.3f} → {ps:.3f}   {_delta(ps - pb)}   "
-        f"Classification downgrades: [red]{report.downgrades}[/red]"
+        f"[bold white]If this happened: {report.scenario_name}[/bold white]\n"
+        f"Market shifts to: [yellow]{report.scenario_regime}[/yellow]   "
+        f"Today: [cyan]{report.current_regime}[/cyan]\n"
+        f"Portfolio Score (avg): {_score(pb)} → {_score(ps)}   {_delta(ps - pb)}   "
+        f"Names that get worse: [red]{report.downgrades}[/red]"
     )
     console.print(Panel(header, title="MERIDIAN SCENARIO", box=box.ROUNDED, expand=False))
 
     # Per-entity impact (sorted by base-case delta, worst hit first)
-    table = Table(title="Per-asset impact", box=box.SIMPLE_HEAVY)
+    table = Table(title="How each name holds up", box=box.SIMPLE_HEAVY)
     table.add_column("Ticker", style="bold")
-    table.add_column("Sleeve", style="dim")
-    table.add_column("Base ACS", justify="right")
-    table.add_column("→ Scenario", justify="right")
-    table.add_column("Δ (base)", justify="right")
+    table.add_column("Bucket", style="dim")
+    table.add_column("Now", justify="right")
+    table.add_column("Stressed", justify="right")
+    table.add_column("Change", justify="right")
     table.add_column("Best / Worst", justify="center")
     table.add_column("Tier", justify="center")
 
@@ -280,24 +297,24 @@ def render_scenario(report: ScenarioReport) -> None:
             cls_cell += f" → {_cls(e.scenario_classification)}"
         table.add_row(
             e.entity,
-            e.sleeve,
-            f"{e.baseline_acs:.3f}",
-            f"{e.base_acs:.3f}",
+            _sleeve(e.sleeve),
+            _score(e.baseline_acs),
+            _score(e.base_acs),
             _delta(e.acs_delta),
-            f"[green]{e.best_acs:.2f}[/green] / [red]{e.worst_acs:.2f}[/red]",
+            f"[green]{_score(e.best_acs)}[/green] / [red]{_score(e.worst_acs)}[/red]",
             cls_cell,
         )
     console.print(table)
 
     # Sleeve drawdown
-    sleeve_tbl = Table(title="Sleeve drawdown (worst case)", box=box.SIMPLE, title_justify="left")
-    sleeve_tbl.add_column("Sleeve", style="bold")
-    sleeve_tbl.add_column("Assets", justify="right")
-    sleeve_tbl.add_column("Avg Δ (base)", justify="right")
-    sleeve_tbl.add_column("Worst drawdown", justify="right")
+    sleeve_tbl = Table(title="Worst-case hit by bucket", box=box.SIMPLE, title_justify="left")
+    sleeve_tbl.add_column("Bucket", style="bold")
+    sleeve_tbl.add_column("Names", justify="right")
+    sleeve_tbl.add_column("Avg change", justify="right")
+    sleeve_tbl.add_column("Worst drop", justify="right")
     for s in report.sleeve_impacts:
         sleeve_tbl.add_row(
-            s.sleeve.capitalize(),
+            _sleeve(s.sleeve),
             str(s.asset_count),
             _delta(s.avg_base_delta),
             _delta(s.worst_drawdown),

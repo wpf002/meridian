@@ -4,6 +4,7 @@ import { runCommand, COMMANDS } from '../lib/commands.js'
 import Badge from '../components/Badge.jsx'
 import {
   humanize, pct, deltaColor, titleCase, CONVICTION_COLOR, ACTION_COLOR,
+  score, scoreSigned, actionLabel, sleeveLabel, regimeLabel,
 } from '../lib/format.js'
 
 const GREEN = 'text-green'
@@ -29,14 +30,14 @@ function ScanOut({ d }) {
     <div className="space-y-1">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <span className="font-mono font-bold text-ink">{d.entity}</span>
-        <span className="font-mono">ACS <span className={GREEN}>{d.acs.toFixed(3)}</span></span>
+        <span className="font-mono">Score <span className={GREEN}>{score(d.acs)}</span></span>
         <Badge value={d.classification} />
-        <span className={`font-mono text-xs ${ACTION_COLOR[d.action]}`}>{d.action}</span>
-        <span className={`font-mono text-xs ${CONVICTION_COLOR[d.conviction]}`}>{d.conviction}</span>
+        <span className={`font-mono text-xs ${ACTION_COLOR[d.action]}`}>{actionLabel(d.action)}</span>
+        <span className={`font-mono text-xs ${CONVICTION_COLOR[d.conviction]}`}>{titleCase(d.conviction)}</span>
       </div>
       <div className={`font-mono text-xs ${MUT}`}>
-        MAS {d.components.mas.toFixed(2)} · TAS {d.components.tas.toFixed(2)} ·
-        SAS {d.components.sas.toFixed(2)} · SRS {d.components.srs.toFixed(2)}
+        Macro {score(d.components.mas)} · Price trend {score(d.components.tas)} ·
+        News {score(d.components.sas)} · Risk {score(d.components.srs)}
       </div>
       {d.flags.length > 0 && (
         <div className="text-xs text-tactical">⚑ {d.flags.map(humanize).join(' · ')}</div>
@@ -52,12 +53,13 @@ function RecommendOut({ d }) {
         <div key={r.entity} className="flex gap-3">
           <span className={`${MUT} w-6 text-right`}>{r.rank}</span>
           <Link to={`/asset/${r.entity}`} className="text-ink hover:text-green w-16">{r.entity}</Link>
-          <span className="w-16 text-right">{r.acs.toFixed(3)}</span>
+          <span className="w-12 text-right">{score(r.acs)}</span>
           <span className="w-36"><Badge value={r.classification} /></span>
-          <span className={`${CONVICTION_COLOR[r.conviction]} text-xs self-center`}>{r.conviction}</span>
+          <span className={`${ACTION_COLOR[r.action]} text-xs self-center w-14`}>{actionLabel(r.action)}</span>
+          <span className={`${CONVICTION_COLOR[r.conviction]} text-xs self-center`}>{titleCase(r.conviction)}</span>
         </div>
       ))}
-      <div className={`${MUT} text-xs mt-1`}>{d.skipped.length} without signals</div>
+      <div className={`${MUT} text-xs mt-1`}>{d.skipped.length} without enough data</div>
     </div>
   )
 }
@@ -67,7 +69,7 @@ function PortfolioOut({ d }) {
     <div className="space-y-1 font-mono text-sm">
       {Object.entries(d.sleeves).map(([name, s]) => (
         <div key={name} className="flex gap-3">
-          <span className="w-24 text-blue">{titleCase(name)}</span>
+          <span className="w-24 text-blue">{sleeveLabel(name)}</span>
           <span className="w-16 text-right">{pct(s.weight)}</span>
           <span className={MUT}>{s.holdings.map((h) => h.ticker).join(' ') || '—'}</span>
         </div>
@@ -99,19 +101,19 @@ function ScenarioOut({ d }) {
     <div className="space-y-1">
       <div className="font-mono text-sm flex flex-wrap gap-x-4">
         <span className="font-bold text-ink">{d.scenario}</span>
-        <span className="text-tactical">{d.scenario_regime}</span>
-        <span>ACS {d.portfolio_baseline_acs.toFixed(3)} → {d.portfolio_base_acs.toFixed(3)}
-          <span className={deltaColor(delta)}> ({delta >= 0 ? '+' : ''}{delta.toFixed(3)})</span>
+        <span className="text-tactical">{regimeLabel(d.scenario_regime)}</span>
+        <span>Score {score(d.portfolio_baseline_acs)} → {score(d.portfolio_base_acs)}
+          <span className={deltaColor(delta)}> ({scoreSigned(delta)})</span>
         </span>
-        <span className="text-avoid">{d.downgrades} downgrades</span>
+        <span className="text-avoid">{d.downgrades} get worse</span>
       </div>
       <div className="font-mono text-xs space-y-0.5">
         {movers.map((e) => (
           <div key={e.entity} className="flex gap-3">
             <span className="w-14 text-ink">{e.entity}</span>
-            <span className="w-28 text-right">{e.baseline_acs.toFixed(3)} → {e.base_acs.toFixed(3)}</span>
+            <span className="w-28 text-right">{score(e.baseline_acs)} → {score(e.base_acs)}</span>
             <span className={`w-16 text-right ${deltaColor(e.acs_delta)}`}>
-              {e.acs_delta >= 0 ? '+' : ''}{e.acs_delta.toFixed(3)}
+              {scoreSigned(e.acs_delta)}
             </span>
           </div>
         ))}
@@ -122,11 +124,11 @@ function ScenarioOut({ d }) {
 
 function CompareOut({ d }) {
   const rows = [
-    ['ACS', d.a.acs, d.b.acs, d.delta.acs],
+    ['Score', d.a.acs, d.b.acs, d.delta.acs],
     ['Macro', d.a.components.mas, d.b.components.mas, d.delta.mas],
-    ['Tactical', d.a.components.tas, d.b.components.tas, d.delta.tas],
-    ['Sentiment', d.a.components.sas, d.b.components.sas, d.delta.sas],
-    ['Structural Risk', d.a.components.srs, d.b.components.srs, d.delta.srs],
+    ['Price trend', d.a.components.tas, d.b.components.tas, d.delta.tas],
+    ['News', d.a.components.sas, d.b.components.sas, d.delta.sas],
+    ['Risk', d.a.components.srs, d.b.components.srs, d.delta.srs],
   ]
   return (
     <div className="font-mono text-sm">
@@ -137,9 +139,9 @@ function CompareOut({ d }) {
       {rows.map(([l, a, b, dd]) => (
         <div key={l} className="flex gap-3">
           <span className={`w-32 ${MUT}`}>{l}</span>
-          <span className="w-16 text-right">{a.toFixed(3)}</span>
-          <span className="w-16 text-right">{b.toFixed(3)}</span>
-          <span className={`w-16 text-right ${deltaColor(dd)}`}>{dd >= 0 ? '+' : ''}{dd.toFixed(3)}</span>
+          <span className="w-16 text-right">{score(a)}</span>
+          <span className="w-16 text-right">{score(b)}</span>
+          <span className={`w-16 text-right ${deltaColor(dd)}`}>{scoreSigned(dd)}</span>
         </div>
       ))}
     </div>
@@ -157,16 +159,23 @@ function BriefOut({ d }) {
   )
 }
 
+const WEIGHT_LABEL = {
+  macro: 'Macro', tactical: 'Price trend', sentiment: 'News', structural_risk: 'Risk',
+}
+
 function StatusOut({ d }) {
   return (
     <div className="font-mono text-sm space-y-1">
-      <div>Model <span className={GREEN}>v{d.model_version}</span> · source{' '}
-        <span className="text-blue">{d.signal_source}</span></div>
+      <div className={MUT}>Live data source: <span className="text-blue">{d.signal_source}</span></div>
       <div className={MUT}>
-        {Object.entries(d.weights).map(([k, v]) => `${humanize(k)} ${v}`).join(' · ')}
+        Score recipe: {Object.entries(d.weights).map(([k, v]) => `${WEIGHT_LABEL[k] || k} ${v}`).join(' · ')}
       </div>
     </div>
   )
+}
+
+function TextOut({ d }) {
+  return <div className="text-green">{d}</div>
 }
 
 function AlertsOut({ d }) {
@@ -197,6 +206,7 @@ function UniverseOut({ d }) {
 function Result({ r }) {
   switch (r.type) {
     case 'help': return <Help />
+    case 'text': return <TextOut d={r.data} />
     case 'error': return <div className="text-avoid">✕ {r.text}</div>
     case 'scan': return <ScanOut d={r.data} />
     case 'recommend': return <RecommendOut d={r.data} />

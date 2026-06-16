@@ -15,7 +15,7 @@ import uuid
 import sqlite3
 import json
 from dataclasses import dataclass, field
-from config.settings import SLEEVE_TARGETS, DB_PATH
+from config.settings import SLEEVE_TARGETS, SLEEVE_LABELS, DB_PATH
 from portfolio.constraints import CONSTRAINTS
 from core.scoring_engine import ACSResult
 from classification.classifier import classify_batch
@@ -130,21 +130,25 @@ class PortfolioConstructor:
     def _check_constraints(self, portfolio: "Portfolio", sector_map: dict = None) -> None:
         sleeves = portfolio.by_sleeve()
 
+        def sleeve_name(key: str) -> str:
+            return SLEEVE_LABELS.get(key, key.capitalize())
+
         # Total allocation (capacity shortfall when assets * cap < 1.0)
         total = portfolio.total_weight()
         if total < 0.99:
             portfolio.warnings.append(
-                f"Total allocated {total*100:.1f}% — capped assets left "
-                f"{(1 - total)*100:.1f}% unplaced (add assets or raise max_single_asset)"
+                f"Only {total*100:.0f}% of the portfolio is invested — "
+                f"{(1 - total)*100:.0f}% is left in cash. Add more names to put it to work."
             )
 
         # Minimum assets per populated sleeve (soft)
         min_assets = self.constraints["min_assets_per_sleeve"]
         for sleeve, allocs in sleeves.items():
             if 0 < len(allocs) < min_assets:
+                plural = "name" if len(allocs) == 1 else "names"
                 portfolio.warnings.append(
-                    f"{sleeve.capitalize()} sleeve holds {len(allocs)} asset(s) "
-                    f"(min {min_assets}) — thinly diversified"
+                    f"The {sleeve_name(sleeve)} bucket holds only {len(allocs)} {plural} — "
+                    f"too few to be well diversified (aim for at least {min_assets})."
                 )
 
         # Sector concentration (soft) — only checkable when sector data is provided
@@ -157,8 +161,8 @@ class PortfolioConstructor:
             for sector, w in sector_weight.items():
                 if w > cap + 1e-9:
                     portfolio.warnings.append(
-                        f"{sector} concentration {w*100:.1f}% exceeds "
-                        f"max_single_sector {cap*100:.0f}%"
+                        f"{sector} makes up {w*100:.0f}% of the portfolio — that's a lot riding on "
+                        f"one sector (over the {cap*100:.0f}% guideline)."
                     )
 
     def construct(

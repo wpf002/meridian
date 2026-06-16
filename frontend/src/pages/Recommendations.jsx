@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { getRecommendations } from '../api/client.js'
-import { CONVICTION_COLOR, ACTION_COLOR, humanize } from '../lib/format.js'
+import { CONVICTION_COLOR, ACTION_COLOR, humanize, titleCase, score, actionLabel } from '../lib/format.js'
 import Badge from '../components/Badge.jsx'
 import { Loading, ErrorState, Empty, PageTitle } from '../components/states.jsx'
 
@@ -24,8 +24,12 @@ export default function Recommendations() {
     <div>
       <PageTitle
         title="Recommendations"
-        sub={`${rows.length} scored · ${data.skipped.length} without signals`}
+        sub="Every name you track, ranked by Score (0–100). Higher = stronger setup right now. Click a row for the full breakdown."
       />
+      <p className="text-xs text-faint -mt-3 mb-4">
+        {rows.length} ranked · {data.skipped.length} without enough data ·
+        Score blends macro, price trend, news & risk. <Link to="/help" className="text-blue hover:underline">What do these mean?</Link>
+      </p>
 
       <div className="card overflow-x-auto">
         <table className="w-full min-w-[680px]">
@@ -33,11 +37,11 @@ export default function Recommendations() {
             <tr>
               <th className="th w-12 text-center">#</th>
               <th className="th">Ticker</th>
-              <th className="th text-right">ACS</th>
+              <th className="th text-right">Score</th>
               <th className="th">Tier</th>
-              <th className="th">Conviction</th>
-              <th className="th">Action</th>
-              <th className="th">Flags</th>
+              <th className="th">Confidence</th>
+              <th className="th">Signal</th>
+              <th className="th">Notes</th>
             </tr>
           </thead>
           <tbody>
@@ -49,12 +53,12 @@ export default function Recommendations() {
               >
                 <td className="td text-center text-faint font-mono">{r.rank}</td>
                 <td className="td font-bold font-mono text-ink">{r.entity}</td>
-                <td className="td text-right font-mono">{r.acs.toFixed(3)}</td>
+                <td className="td text-right font-mono text-base">{score(r.acs)}</td>
                 <td className="td"><Badge value={r.classification} /></td>
                 <td className={`td font-mono text-xs ${CONVICTION_COLOR[r.conviction] || ''}`}>
-                  {r.conviction}
+                  {titleCase(r.conviction)}
                 </td>
-                <td className={`td font-mono text-xs ${ACTION_COLOR[r.action] || ''}`}>{r.action}</td>
+                <td className={`td font-mono text-xs ${ACTION_COLOR[r.action] || ''}`}>{actionLabel(r.action)}</td>
                 <td className="td text-tactical text-xs">
                   {r.flags.length ? r.flags.map(humanize).join(', ') : <span className="text-faint">—</span>}
                 </td>

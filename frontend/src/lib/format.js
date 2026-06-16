@@ -43,6 +43,26 @@ export const TIER_LABEL = {
 
 export const tierLabel = (classification) => TIER_LABEL[classification] || classification
 
+// The engine works in 0–1; users read 0–100. One place to convert.
+export const score = (acs) => Math.round((acs ?? 0) * 100)
+export const scoreSigned = (d) => `${d >= 0 ? '+' : ''}${Math.round(d * 100)}`
+
+// Action verbs the user understands (engine keeps ESCALATE/MONITOR/RESTRICT/LOG).
+export const ACTION_LABEL = {
+  ESCALATE: 'Buy', MONITOR: 'Watch', RESTRICT: 'Avoid', LOG: 'Neutral',
+}
+export const actionLabel = (action) => ACTION_LABEL[action] || titleCase(action)
+
+// Plain portfolio-bucket names (engine keeps core/growth/defensive/tactical).
+export const SLEEVE_LABEL = {
+  core: 'Foundation', growth: 'Growth', defensive: 'Protection', tactical: 'Short-term',
+}
+export const sleeveLabel = (name) => SLEEVE_LABEL[name] || titleCase(name)
+
+// "LIQUIDITY-CONTRACTION" -> "Liquidity Contraction"
+export const regimeLabel = (regime) =>
+  String(regime || '').split('-').map(titleCase).join(' ')
+
 export const CONVICTION_COLOR = { HIGH: 'text-core', MEDIUM: 'text-tactical', LOW: 'text-avoid' }
 export const ACTION_COLOR = {
   ESCALATE: 'text-core',

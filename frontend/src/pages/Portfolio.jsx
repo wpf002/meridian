@@ -4,12 +4,19 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { getPortfolio } from '../api/client.js'
 import Badge from '../components/Badge.jsx'
 import { Loading, ErrorState, PageTitle } from '../components/states.jsx'
-import { pct, titleCase } from '../lib/format.js'
+import { pct, score, sleeveLabel } from '../lib/format.js'
 
 const SLEEVE_COLOR = {
   core: '#26e3a0', growth: '#39b6f6', defensive: '#8a7dff', tactical: '#f5b53d',
 }
 const SLEEVE_ORDER = ['core', 'growth', 'defensive', 'tactical']
+// One-line plain-English purpose for each bucket.
+const SLEEVE_BLURB = {
+  core: 'Stable, high-conviction long-term holdings',
+  growth: 'Higher-risk names with more upside',
+  defensive: 'Safe-havens that hold up in a downturn',
+  tactical: 'Short-term, opportunistic positions',
+}
 
 export default function Portfolio() {
   const [data, setData] = useState(null)
@@ -29,7 +36,10 @@ export default function Portfolio() {
 
   return (
     <div>
-      <PageTitle title="Portfolio" sub={`Four-sleeve allocation · ${pct(data.total_weight)} allocated`} />
+      <PageTitle
+        title="Portfolio"
+        sub="A suggested mix built from your top-ranked names, split into four buckets by role."
+      />
 
       <div className="grid md:grid-cols-[280px_1fr] gap-6">
         <div className="card p-5 h-fit">
@@ -42,7 +52,7 @@ export default function Portfolio() {
               </Pie>
               <Tooltip
                 contentStyle={{ background: '#08111a', border: '1px solid #15303d', borderRadius: 8 }}
-                formatter={(v, n) => [pct(v), titleCase(n)]}
+                formatter={(v, n) => [pct(v), sleeveLabel(n)]}
               />
             </PieChart>
           </ResponsiveContainer>
@@ -51,7 +61,7 @@ export default function Portfolio() {
               <div key={name} className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-sm" style={{ background: SLEEVE_COLOR[name] }} />
-                  <span>{titleCase(name)}</span>
+                  <span>{sleeveLabel(name)}</span>
                 </span>
                 <span className="font-mono text-muted">{pct(s.weight)}</span>
               </div>
@@ -63,9 +73,12 @@ export default function Portfolio() {
           {sleeves.map(([name, s]) => (
             <div key={name} className="card overflow-hidden">
               <div className="flex items-center justify-between px-4 py-2.5 border-b border-edge/70">
-                <span className="font-semibold tracking-wide" style={{ color: SLEEVE_COLOR[name] }}>
-                  {titleCase(name)}
-                </span>
+                <div>
+                  <span className="font-semibold tracking-wide" style={{ color: SLEEVE_COLOR[name] }}>
+                    {sleeveLabel(name)}
+                  </span>
+                  <span className="text-faint text-xs ml-2">{SLEEVE_BLURB[name]}</span>
+                </div>
                 <span className="font-mono text-sm text-muted">{pct(s.weight)}</span>
               </div>
               {s.holdings.length ? (
@@ -79,7 +92,7 @@ export default function Portfolio() {
                           </Link>
                         </td>
                         <td className="td"><Badge value={h.classification} /></td>
-                        <td className="td text-right font-mono text-muted">{h.acs.toFixed(3)}</td>
+                        <td className="td text-right font-mono text-muted">{score(h.acs)}</td>
                         <td className="td text-right font-mono">{pct(h.weight)}</td>
                       </tr>
                     ))}
@@ -92,10 +105,18 @@ export default function Portfolio() {
           ))}
 
           {data.warnings.length > 0 && (
-            <div className="card p-4 border-tactical/40">
-              {data.warnings.map((w, i) => (
-                <div key={i} className="text-tactical text-sm">⚠ {w}</div>
-              ))}
+            <div className="card border-tactical/40 overflow-hidden">
+              <div className="px-4 py-2.5 border-b border-edge/70">
+                <span className="font-semibold text-tactical text-sm">Heads-up on this mix</span>
+                <p className="text-faint text-xs mt-0.5">
+                  Diversification and risk-limit checks — not errors, just things to be aware of.
+                </p>
+              </div>
+              <div className="px-4 py-3 space-y-1.5">
+                {data.warnings.map((w, i) => (
+                  <div key={i} className="text-tactical text-sm">⚠ {w}</div>
+                ))}
+              </div>
             </div>
           )}
         </div>

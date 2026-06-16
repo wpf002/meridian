@@ -6,6 +6,7 @@ import Asset from './pages/Asset.jsx'
 import Portfolio from './pages/Portfolio.jsx'
 import Scenarios from './pages/Scenarios.jsx'
 import Status from './pages/Status.jsx'
+import HowToUse from './pages/HowToUse.jsx'
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
         <Route path="/portfolio" element={<Portfolio />} />
         <Route path="/scenarios" element={<Scenarios />} />
         <Route path="/status" element={<Status />} />
+        <Route path="/help" element={<HowToUse />} />
       </Route>
     </Routes>
   )

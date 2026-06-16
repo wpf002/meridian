@@ -7,6 +7,11 @@ import { pct, humanize, SEVERITY_COLOR, tierLabel } from '../lib/format.js'
 const WEIGHT_COLOR = {
   macro: '#26e3a0', tactical: '#39b6f6', sentiment: '#8ad0ff', structural_risk: '#ff6b7a',
 }
+// Match the plain ingredient names used on the asset page.
+const WEIGHT_LABEL = {
+  macro: 'Macro', tactical: 'Price trend', sentiment: 'News', structural_risk: 'Risk',
+}
+const weightLabel = (k) => WEIGHT_LABEL[k] || k
 
 function AlertsPanel() {
   const [alerts, setAlerts] = useState(null)
@@ -60,11 +65,14 @@ export default function Status() {
 
   return (
     <div>
-      <PageTitle title="Status" sub="Model, scoring weights, accuracy & alerts." />
+      <PageTitle title="Status" sub="How the Score is put together, how well it's worked, and anything that needs attention." />
 
       <div className="grid md:grid-cols-2 gap-4 mb-4">
         <div className="card p-5">
-          <div className="card-head -mx-5 -mt-5 mb-4 rounded-t-lg">Scoring Weights</div>
+          <div className="card-head -mx-5 -mt-5 mb-4 rounded-t-lg">What drives the Score</div>
+          <p className="text-xs text-faint mb-3">
+            How much each ingredient counts toward a name's Score. Risk pulls the Score down; the others push it up.
+          </p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={weights} layout="vertical" margin={{ left: 36 }}>
               <XAxis type="number" domain={[0, 0.5]} stroke="#5d7689" fontSize={12} />
@@ -74,13 +82,13 @@ export default function Status() {
                 stroke="#5d7689"
                 width={104}
                 fontSize={11}
-                tickFormatter={humanize}
+                tickFormatter={weightLabel}
               />
               <Tooltip
                 cursor={{ fill: '#0b192540' }}
                 contentStyle={{ background: '#08111a', border: '1px solid #15303d', borderRadius: 8 }}
                 formatter={(v) => v.toFixed(2)}
-                labelFormatter={humanize}
+                labelFormatter={weightLabel}
               />
               <Bar dataKey="value" radius={[0, 3, 3, 0]}>
                 {weights.map((w) => (
@@ -92,10 +100,13 @@ export default function Status() {
         </div>
 
         <div className="card p-5">
-          <div className="card-head -mx-5 -mt-5 mb-4 rounded-t-lg">Accuracy by Tier</div>
+          <div className="card-head -mx-5 -mt-5 mb-4 rounded-t-lg">Track record by Tier</div>
+          <p className="text-xs text-faint mb-3">
+            How often each tier's calls have actually paid off, once enough time has passed to judge them.
+          </p>
           {accuracy.length === 0 ? (
             <div className="text-muted text-sm">
-              No resolved outcomes yet — resolve returns to populate this.
+              Nothing to grade yet — this fills in as past calls play out over time.
             </div>
           ) : (
             <table className="w-full">
@@ -124,21 +135,7 @@ export default function Status() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="card overflow-hidden">
-          <div className="card-head">Model Version History</div>
-          <ul className="divide-y divide-edge/50">
-            {data.model_history.map((m, i) => (
-              <li key={i} className="px-4 py-2.5 text-sm">
-                <span className="font-mono font-bold text-green">v{m.version}</span>
-                <span className="text-muted ml-2">{m.notes}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <AlertsPanel />
-      </div>
+      <AlertsPanel />
     </div>
   )
 }

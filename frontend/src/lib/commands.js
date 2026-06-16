@@ -1,20 +1,23 @@
 import {
   getScan, getRecommendations, getPortfolio, getScenarios, runScenario,
-  getBrief, getStatus, getAlerts, getUniverse, compareAssets,
+  getBrief, getStatus, getAlerts, getUniverse, compareAssets, addAsset, removeAsset,
 } from '../api/client.js'
 
 export const COMMANDS = [
-  ['help', 'List available commands'],
-  ['scan <TICKER>', 'Score & classify a single asset'],
-  ['recommend', 'Ranked recommendations across the universe'],
-  ['portfolio', 'Construct the four-sleeve portfolio'],
-  ['scenarios', 'List stress scenarios'],
-  ['scenario <name>', 'Run a scenario impact report'],
-  ['compare <A> vs <B>', 'Side-by-side ACS breakdown'],
-  ['brief', 'Daily intelligence brief'],
-  ['status', 'Model version, weights & accuracy'],
-  ['alerts', 'Active alerts'],
-  ['universe', 'List the asset universe'],
+  ['help', 'List every command'],
+  ['scan <TICKER>', 'Score one stock (0–100) with Buy / Watch / Avoid'],
+  ['recommend', 'Rank everything you track, best first'],
+  ['top [N]', 'Show just the top N names (default 5)'],
+  ['portfolio', 'Build a suggested mix across the four buckets'],
+  ['scenarios', 'List the "what if" market scenarios'],
+  ['scenario <name>', 'Run a scenario and see who gets hit'],
+  ['compare <A> vs <B>', 'Put two stocks side by side'],
+  ['add <TICKER>', 'Add a stock to your watchlist'],
+  ['remove <TICKER>', 'Remove a stock from your watchlist'],
+  ['watchlist', 'List the stocks you track'],
+  ['brief', 'Plain-English summary of the whole book'],
+  ['status', 'How the score is built & how it has done'],
+  ['alerts', 'Anything that needs attention'],
   ['clear', 'Clear the console'],
 ]
 
@@ -41,6 +44,24 @@ export async function runCommand(raw) {
       case 'recommend':
       case 'recommendations':
         return ok('recommend', await getRecommendations())
+
+      case 'top': {
+        const n = Math.max(1, parseInt(parts[1], 10) || 5)
+        const data = await getRecommendations()
+        return ok('recommend', { ...data, recommendations: data.recommendations.slice(0, n) })
+      }
+
+      case 'add':
+      case 'watch':
+        if (!parts[1]) return err('Usage: add <TICKER>')
+        await addAsset(parts[1].toUpperCase())
+        return ok('text', `Added ${parts[1].toUpperCase()} to your watchlist.`)
+
+      case 'remove':
+      case 'rm':
+        if (!parts[1]) return err('Usage: remove <TICKER>')
+        await removeAsset(parts[1].toUpperCase())
+        return ok('text', `Removed ${parts[1].toUpperCase()} from your watchlist.`)
 
       case 'portfolio':
         return ok('portfolio', await getPortfolio())
@@ -79,6 +100,7 @@ export async function runCommand(raw) {
       case 'alerts':
         return ok('alerts', await getAlerts())
       case 'universe':
+      case 'watchlist':
         return ok('universe', await getUniverse())
 
       default:
