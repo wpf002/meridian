@@ -109,8 +109,10 @@ class RegimeSnapshot:
 
     @classmethod
     def from_dict(cls, d: dict) -> "RegimeSnapshot":
+        # AURORA's /intelligence/regime returns "contributing_factors"; accept
+        # "factors" too for forward-compatibility.
         return cls(
-            regime=normalize_regime(d.get("regime", "NEUTRAL")),
+            regime=normalize_regime(d.get("regime") or "NEUTRAL"),
             confidence=float(d.get("confidence", 0.5) or 0.5),
-            factors=d.get("factors", []) or [],
+            factors=d.get("contributing_factors") or d.get("factors") or [],
         )

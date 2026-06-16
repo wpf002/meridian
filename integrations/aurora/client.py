@@ -31,6 +31,14 @@ class AuroraClient:
         with urllib.request.urlopen(req, timeout=self.timeout) as resp:
             return json.loads(resp.read().decode("utf-8"))
 
+    def _get_list(self, path: str, params: dict = None) -> list:
+        """List-returning endpoints: treat 'no data' (404/empty) as [] rather than an error."""
+        try:
+            data = self._get_json(path, params)
+            return data if isinstance(data, list) else []
+        except Exception:
+            return []
+
     def health(self) -> bool:
         """True if AURORA's API answers the regime endpoint."""
         try:
@@ -43,8 +51,8 @@ class AuroraClient:
         return RegimeSnapshot.from_dict(self._get_json("/intelligence/regime"))
 
     def quote_history(self, symbol: str, period: str = "3mo", interval: str = "1d") -> list[QuoteHistoryPoint]:
-        data = self._get_json(f"/quotes/{symbol}/history", {"period": period, "interval": interval})
-        return [QuoteHistoryPoint.from_dict(d) for d in (data or [])]
+        data = self._get_list(f"/quotes/{symbol}/history", {"period": period, "interval": interval})
+        return [QuoteHistoryPoint.from_dict(d) for d in data]
 
     def fragility(self) -> dict[str, float]:
         """Return {symbol: fragility 0-100} from the intelligence fragility snapshot."""
@@ -57,9 +65,9 @@ class AuroraClient:
         return out
 
     def news(self, symbols: list[str], limit: int = 20) -> list[NewsItem]:
-        data = self._get_json("/news", {"symbols": ",".join(symbols), "limit": limit})
-        return [NewsItem.from_dict(d) for d in (data or [])]
+        data = self._get_list("/news", {"symbols": ",".join(symbols), "limit": limit})
+        return [NewsItem.from_dict(d) for d in data]
 
     def filings(self, symbol: str, forms: str = "10-K,10-Q,8-K", limit: int = 10) -> list[FilingEntry]:
-        data = self._get_json(f"/filings/{symbol}", {"forms": forms, "limit": limit})
-        return [FilingEntry.from_dict(d) for d in (data or [])]
+        data = self._get_list(f"/filings/{symbol}", {"forms": forms, "limit": limit})
+        return [FilingEntry.from_dict(d) for d in data]
