@@ -1,24 +1,12 @@
 import { useEffect, useState } from 'react'
-import { getStatus } from '../api/client.js'
-
-function Chip({ label, value, color = 'text-ink' }) {
-  return (
-    <span className="chip">
-      <span className="text-muted">{label}</span>
-      <span className={color}>{value}</span>
-    </span>
-  )
-}
+import { getHealth } from '../api/client.js'
 
 export default function SystemBar() {
-  const [status, setStatus] = useState(null)
   const [online, setOnline] = useState(null)
   const [clock, setClock] = useState('')
 
   useEffect(() => {
-    getStatus()
-      .then((s) => { setStatus(s); setOnline(true) })
-      .catch(() => setOnline(false))
+    getHealth().then(() => setOnline(true)).catch(() => setOnline(false))
   }, [])
 
   useEffect(() => {
@@ -35,17 +23,7 @@ export default function SystemBar() {
         <span className={`w-1.5 h-1.5 rounded-full ${online ? 'bg-green shadow-glow' : 'bg-avoid'}`} />
         {online === false ? 'OFFLINE' : 'ONLINE'}
       </span>
-      <div className="flex items-center gap-2 text-xs">
-        {status && <Chip label="MODEL" value={`v${status.model_version}`} />}
-        {status && (
-          <Chip
-            label="SOURCE"
-            value={status.signal_source}
-            color={status.signal_source === 'AURORA' ? 'text-green' : 'text-blue'}
-          />
-        )}
-        <span className="chip text-muted hidden sm:inline-flex">{clock}</span>
-      </div>
+      <span className="chip text-muted hidden sm:inline-flex">{clock}</span>
     </div>
   )
 }
