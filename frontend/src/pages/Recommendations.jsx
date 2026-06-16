@@ -27,8 +27,8 @@ export default function Recommendations() {
         {rows.length} scored · {data.skipped.length} skipped
       </p>
 
-      <div className="card overflow-hidden">
-        <table className="w-full">
+      <div className="card overflow-x-auto">
+        <table className="w-full min-w-[680px]">
           <thead>
             <tr>
               <th className="th w-10">#</th>

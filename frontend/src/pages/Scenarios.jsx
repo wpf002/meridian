@@ -74,9 +74,9 @@ export default function Scenarios() {
           <Banner report={report} />
 
           <div className="grid lg:grid-cols-[1fr_320px] gap-5">
-            <div className="card overflow-hidden">
+            <div className="card overflow-x-auto">
               <div className="px-4 py-2 border-b border-edge font-medium">Per-asset impact</div>
-              <table className="w-full">
+              <table className="w-full min-w-[640px]">
                 <thead>
                   <tr>
                     <th className="th">Ticker</th>
