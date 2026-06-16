@@ -9,7 +9,7 @@ const LINKS = [
   ['/portfolio', 'Portfolio', '◷'],
   ['/scenarios', 'Scenarios', '⚡'],
   ['/status', 'Status', '◉'],
-  ['/help', 'How to Use', '?'],
+  ['/help', 'How To Use', '?'],
 ]
 
 function Brand({ size = 38 }) {

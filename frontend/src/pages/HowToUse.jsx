@@ -22,11 +22,11 @@ export default function HowToUse() {
   return (
     <div>
       <PageTitle
-        title="How to Use Meridian"
+        title="How To Use"
         sub="Plain-English meaning of every term on the other pages. Nothing here is financial advice — it's a screening tool to help you do your own research."
       />
 
-      <div className="grid lg:grid-cols-2 gap-4 items-start">
+      <div className="grid lg:grid-cols-2 gap-4 auto-rows-fr">
         <Section title="The basics">
           <Term name="Score (0–100)">
             One number summarizing how strong a stock's setup looks right now. Higher is better.
