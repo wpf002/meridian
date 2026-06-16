@@ -16,7 +16,12 @@ from config.settings import DB_PATH
 
 
 @pytest.fixture
-def client():
+def client(monkeypatch):
+    # Keep tests deterministic + offline: force the manual signal source even if
+    # a developer's .env has AURORA_ENABLED=true (live external services).
+    import core.signal_source as signal_source
+    monkeypatch.setattr(signal_source, "AURORA_ENABLED", False)
+
     backup = DB_PATH + ".testbak"
     existed = os.path.exists(DB_PATH)
     if existed:

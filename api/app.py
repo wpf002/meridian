@@ -15,6 +15,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from core import bootstrap
+from modules.base import get_client
 from core.pipeline import MeridianPipeline
 from core.signal_source import default_source
 from classification.asset_universe import AssetUniverse
@@ -31,7 +32,13 @@ from api import serializers
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     bootstrap.bootstrap()
-    app.state.source, app.state.source_label = default_source()
+    # Enable LLM sentiment scoring when an Anthropic key is configured.
+    llm = None
+    try:
+        llm = get_client()
+    except RuntimeError:
+        pass
+    app.state.source, app.state.source_label = default_source(llm_client=llm)
     yield
 
 
