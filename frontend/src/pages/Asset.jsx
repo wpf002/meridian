@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getScan, getUniverse, compareAssets } from '../api/client.js'
+import { getScan, getUniverse, compareAssets, addAsset, removeAsset } from '../api/client.js'
 import Badge from '../components/Badge.jsx'
 import AcsComponentsChart from '../components/AcsComponentsChart.jsx'
 import { Loading, ErrorState } from '../components/states.jsx'
@@ -96,6 +96,30 @@ function ComparePanel({ ticker }) {
   )
 }
 
+function WatchlistButton({ ticker }) {
+  const [inList, setInList] = useState(null)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    getUniverse()
+      .then((d) => setInList(d.assets.some((a) => a.ticker === ticker.toUpperCase())))
+      .catch(() => setInList(false))
+  }, [ticker])
+
+  const toggle = () => {
+    setBusy(true)
+    const action = inList ? removeAsset(ticker) : addAsset(ticker)
+    action.then(() => setInList(!inList)).finally(() => setBusy(false))
+  }
+
+  if (inList === null) return null
+  return (
+    <button onClick={toggle} disabled={busy} className={`btn ml-auto ${inList ? 'btn-active' : ''}`}>
+      {inList ? '✓ In watchlist' : '+ Add to watchlist'}
+    </button>
+  )
+}
+
 export default function Asset() {
   const { ticker } = useParams()
   const [scan, setScan] = useState(null)
@@ -122,6 +146,7 @@ export default function Asset() {
             <Badge value={scan.classification} />
             <span className="chip text-muted">Tier {scan.tier}</span>
             <span className={`chip ${ACTION_COLOR[scan.action] || ''}`}>{scan.action}</span>
+            <WatchlistButton ticker={scan.entity} />
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">

@@ -9,6 +9,9 @@ export default api
 export const getStatus = () => api.get('/status').then((r) => r.data)
 export const getHealth = () => api.get('/health').then((r) => r.data)
 export const getUniverse = () => api.get('/universe').then((r) => r.data)
+export const addAsset = (ticker, name, sector) =>
+  api.post('/universe', null, { params: { ticker, name: name || ticker, sector } }).then((r) => r.data)
+export const removeAsset = (ticker) => api.delete(`/universe/${ticker}`).then((r) => r.data)
 export const getRecommendations = () => api.get('/recommend').then((r) => r.data)
 export const getScan = (ticker) => api.get(`/scan/${ticker}`).then((r) => r.data)
 export const getPortfolio = () => api.get('/portfolio').then((r) => r.data)
