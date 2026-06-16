@@ -3,9 +3,9 @@ import { render, screen } from '@testing-library/react'
 import Badge from './Badge.jsx'
 
 describe('Badge', () => {
-  it('renders the classification text', () => {
+  it('renders the classification as a tier label', () => {
     render(<Badge value="CORE" />)
-    expect(screen.getByText('CORE')).toBeTruthy()
+    expect(screen.getByText('Tier 1')).toBeTruthy()
   })
 
   it('applies the classification color class', () => {

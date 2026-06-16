@@ -31,6 +31,18 @@ export const CLASS_COLOR = {
   AVOID: 'text-avoid border-avoid/50',
 }
 
+// Display the engine's internal classifications as plain tier labels. The
+// values above stay as-is in the API/engine (the portfolio constructor routes
+// sleeves off them); this is presentation only.
+export const TIER_LABEL = {
+  CORE: 'Tier 1',
+  'HIGH-ASYMMETRY': 'Tier 2',
+  TACTICAL: 'Tier 3',
+  AVOID: 'Avoid',
+}
+
+export const tierLabel = (classification) => TIER_LABEL[classification] || classification
+
 export const CONVICTION_COLOR = { HIGH: 'text-core', MEDIUM: 'text-tactical', LOW: 'text-avoid' }
 export const ACTION_COLOR = {
   ESCALATE: 'text-core',

@@ -22,6 +22,20 @@ _CLASSIFICATION_STYLE = {
     "AVOID": "bold red",
 }
 
+# Plain tier labels for display. The engine keeps the semantic classification
+# values above (the portfolio constructor routes sleeves off them); this only
+# changes what the reader sees.
+_TIER_LABEL = {
+    "CORE": "Tier 1",
+    "HIGH-ASYMMETRY": "Tier 2",
+    "TACTICAL": "Tier 3",
+    "AVOID": "Avoid",
+}
+
+
+def _tier(classification: str) -> str:
+    return _TIER_LABEL.get(classification, classification)
+
 _ACTION_STYLE = {
     "ESCALATE": "bold green",
     "MONITOR": "yellow",
@@ -44,8 +58,8 @@ def render_scan(scan: ScanResult) -> None:
     header = (
         f"[bold white]{scan.entity}[/bold white]   "
         f"ACS [bold]{r.acs:.3f}[/bold]   "
-        f"[{cls_style}]{scan.classification}[/{cls_style}]   "
-        f"Tier {scan.prioritized.tier}   "
+        f"[{cls_style}]{_tier(scan.classification)}[/{cls_style}]   "
+        f"Priority {scan.prioritized.tier}   "
         f"[{action_style}]{scan.decision.action}[/{action_style}]   "
         f"Conviction [{conv_style}]{conf['conviction']}[/{conv_style}]"
     )
@@ -100,7 +114,7 @@ def render_scan(scan: ScanResult) -> None:
 
 def _cls(classification: str) -> str:
     style = _CLASSIFICATION_STYLE.get(classification, "white")
-    return f"[{style}]{classification}[/{style}]"
+    return f"[{style}]{_tier(classification)}[/{style}]"
 
 
 def _conv(label: str) -> str:
@@ -128,8 +142,7 @@ def render_recommend(scans: list[ScanResult], skipped: list = None, tlh: dict = 
     table.add_column("#", justify="right", style="dim")
     table.add_column("Ticker", style="bold")
     table.add_column("ACS", justify="right")
-    table.add_column("Tier", justify="center")
-    table.add_column("Classification")
+    table.add_column("Tier")
     table.add_column("Conviction")
     table.add_column("Action")
     table.add_column("Flags", style="yellow")
@@ -142,7 +155,6 @@ def render_recommend(scans: list[ScanResult], skipped: list = None, tlh: dict = 
             str(i),
             s.entity,
             f"{s.result.acs:.3f}",
-            str(s.prioritized.tier),
             _cls(s.classification),
             _conv(s.confidence["conviction"]),
             f"[{action_style}]{s.decision.action}[/{action_style}]",
@@ -186,7 +198,7 @@ def render_portfolio(portfolio: Portfolio) -> None:
         table.add_column("Ticker", style="bold")
         table.add_column("Weight", justify="right")
         table.add_column("ACS", justify="right")
-        table.add_column("Classification")
+        table.add_column("Tier")
         for a in allocs:
             table.add_row(a.ticker, f"{a.weight*100:.2f}%", f"{a.acs:.3f}", _cls(a.classification))
         console.print(table)
@@ -216,7 +228,7 @@ def render_compare(scan_a: ScanResult, scan_b: ScanResult) -> None:
     row("Structural Risk (SRS)", a.srs, b.srs)
     row("Composite (ACS)", a.acs, b.acs)
     table.add_row(
-        "Classification",
+        "Tier",
         _cls(scan_a.classification),
         _cls(scan_b.classification),
         "",
@@ -260,7 +272,7 @@ def render_scenario(report: ScenarioReport) -> None:
     table.add_column("→ Scenario", justify="right")
     table.add_column("Δ (base)", justify="right")
     table.add_column("Best / Worst", justify="center")
-    table.add_column("Classification", justify="center")
+    table.add_column("Tier", justify="center")
 
     for e in sorted(report.entities, key=lambda x: x.acs_delta):
         cls_cell = _cls(e.baseline_classification)
@@ -342,13 +354,13 @@ def render_status(version: str, weights: dict, thresholds: dict, db_path: str,
     console.print(wt)
 
     if accuracy:
-        acc = Table(box=box.SIMPLE, title="Accuracy by classification", title_justify="left")
-        acc.add_column("Classification", style="bold")
+        acc = Table(box=box.SIMPLE, title="Accuracy by tier", title_justify="left")
+        acc.add_column("Tier", style="bold")
         acc.add_column("Accuracy", justify="right")
         acc.add_column("Resolved", justify="right")
         acc.add_column("Avg return", justify="right")
         for cls, s in accuracy.items():
-            acc.add_row(cls, f"{s['accuracy']:.0%}", f"{s['correct']}/{s['total']}", f"{s['avg_return']:+.2%}")
+            acc.add_row(_tier(cls), f"{s['accuracy']:.0%}", f"{s['correct']}/{s['total']}", f"{s['avg_return']:+.2%}")
         console.print(acc)
     else:
         console.print("[dim]No resolved outcomes yet — accuracy unavailable.[/dim]")

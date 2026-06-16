@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { getStatus, getAlerts, ackAlert } from '../api/client.js'
 import { Loading, ErrorState, PageTitle } from '../components/states.jsx'
-import { pct, humanize, SEVERITY_COLOR } from '../lib/format.js'
+import { pct, humanize, SEVERITY_COLOR, tierLabel } from '../lib/format.js'
 
 const WEIGHT_COLOR = {
   macro: '#26e3a0', tactical: '#39b6f6', sentiment: '#8ad0ff', structural_risk: '#ff6b7a',
@@ -92,7 +92,7 @@ export default function Status() {
         </div>
 
         <div className="card p-5">
-          <div className="card-head -mx-5 -mt-5 mb-4 rounded-t-lg">Accuracy by Classification</div>
+          <div className="card-head -mx-5 -mt-5 mb-4 rounded-t-lg">Accuracy by Tier</div>
           {accuracy.length === 0 ? (
             <div className="text-muted text-sm">
               No resolved outcomes yet — resolve returns to populate this.
@@ -101,7 +101,7 @@ export default function Status() {
             <table className="w-full">
               <thead>
                 <tr>
-                  <th className="th">Class</th>
+                  <th className="th">Tier</th>
                   <th className="th text-right">Accuracy</th>
                   <th className="th text-right">Resolved</th>
                   <th className="th text-right">Avg Return</th>
@@ -110,7 +110,7 @@ export default function Status() {
               <tbody>
                 {accuracy.map(([cls, s]) => (
                   <tr key={cls}>
-                    <td className="td font-mono">{cls}</td>
+                    <td className="td font-mono">{tierLabel(cls)}</td>
                     <td className="td text-right font-mono">{pct(s.accuracy)}</td>
                     <td className="td text-right font-mono">{s.correct}/{s.total}</td>
                     <td className="td text-right font-mono">

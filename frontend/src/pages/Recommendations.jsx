@@ -34,8 +34,7 @@ export default function Recommendations() {
               <th className="th w-12 text-center">#</th>
               <th className="th">Ticker</th>
               <th className="th text-right">ACS</th>
-              <th className="th text-center">Tier</th>
-              <th className="th">Classification</th>
+              <th className="th">Tier</th>
               <th className="th">Conviction</th>
               <th className="th">Action</th>
               <th className="th">Flags</th>
@@ -51,7 +50,6 @@ export default function Recommendations() {
                 <td className="td text-center text-faint font-mono">{r.rank}</td>
                 <td className="td font-bold font-mono text-ink">{r.entity}</td>
                 <td className="td text-right font-mono">{r.acs.toFixed(3)}</td>
-                <td className="td text-center font-mono text-muted">{r.tier}</td>
                 <td className="td"><Badge value={r.classification} /></td>
                 <td className={`td font-mono text-xs ${CONVICTION_COLOR[r.conviction] || ''}`}>
                   {r.conviction}

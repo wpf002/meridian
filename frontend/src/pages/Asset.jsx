@@ -84,7 +84,7 @@ function ComparePanel({ ticker }) {
               </tr>
             ))}
             <tr>
-              <td className="td text-muted">Classification</td>
+              <td className="td text-muted">Tier</td>
               <td className="td text-right"><Badge value={result.a.classification} /></td>
               <td className="td text-right"><Badge value={result.b.classification} /></td>
               <td className="td" />
