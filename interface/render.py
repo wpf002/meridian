@@ -5,7 +5,6 @@ Rich rendering for pipeline outputs. Kept separate from command dispatch
 so the same renderers can be reused by recommend / compare / brief later.
 """
 
-from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich import box
@@ -13,8 +12,7 @@ from rich import box
 from core.pipeline import ScanResult
 from portfolio.constructor import Portfolio
 from sandbox.simulator import ScenarioReport
-
-console = Console()
+from interface.console import console
 
 
 _CLASSIFICATION_STYLE = {

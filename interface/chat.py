@@ -15,12 +15,8 @@ Supported commands:
   exit / quit                  — Exit
 """
 
-import uuid
-from rich.console import Console
-from rich.table import Table
-from rich import box
-
-console = Console()
+from interface.console import console
+from interface.session import SessionHistory
 
 
 def print_help():
@@ -41,8 +37,13 @@ def print_help():
   meridian resolve <T> <ret>    Record a realized return for a ticker
   meridian learn                Run a meta-learning weight cycle
   meridian status               System status, accuracy, weight history
+  meridian universe             List the active asset universe
+  meridian add <T> [name] [sec] Add an asset to the universe
+  meridian remove <T>           Remove an asset from the universe
   help                          Show this menu
   exit                          Quit
+
+Anything else is treated as a natural-language question for the analyst.
 """)
 
 
@@ -50,8 +51,9 @@ def run_chat(meridian_core):
     """
     Main REPL loop. Accepts a MeridianCore instance that handles command dispatch.
     """
+    history = SessionHistory()
     console.print("[bold cyan]MERIDIAN[/bold cyan] Intelligence System — Online")
-    console.print("Type [bold]help[/bold] for commands.\n")
+    console.print(f"Type [bold]help[/bold] for commands.  [dim]session {history.session_id}[/dim]\n")
 
     while True:
         try:
@@ -63,6 +65,7 @@ def run_chat(meridian_core):
         if not raw:
             continue
 
+        history.record(raw)
         cmd = raw.lower()
 
         if cmd in ("exit", "quit"):
@@ -124,5 +127,18 @@ def run_chat(meridian_core):
         elif cmd == "meridian status":
             meridian_core.cmd_status()
 
+        elif cmd == "meridian universe":
+            meridian_core.cmd_universe()
+
+        elif cmd.startswith("meridian add "):
+            meridian_core.cmd_add(raw[len("meridian add "):].strip())
+
+        elif cmd.startswith("meridian remove "):
+            meridian_core.cmd_remove(raw.split()[-1].strip())
+
         else:
-            console.print(f"[red]Unknown command:[/red] {raw}. Type [bold]help[/bold] for options.")
+            # Natural-language fallback: hand unrecognized input to the analyst.
+            meridian_core.cmd_ask(raw)
+
+    path = history.save(console)
+    console.print(f"[dim]Session log saved: {path}[/dim]")

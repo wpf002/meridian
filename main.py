@@ -12,11 +12,12 @@ Usage:
 
 import sys
 import sqlite3
+import shlex
 import argparse
 from pathlib import Path
 from datetime import datetime, timezone
-from rich.console import Console
 
+from interface.console import console
 from config.settings import DB_PATH, DATA_INPUT_PATH, LOG_PATH
 from governance.model_registry import ModelRegistry
 from core.pipeline import MeridianPipeline
@@ -30,13 +31,13 @@ from sandbox.scenario_builder import get_scenario, list_scenarios
 from sandbox.simulator import Simulator, classify_current_regime
 from outputs.alert_system import AlertSystem
 from outputs import daily_brief, weekly_summary
+from modules.base import get_client
+from interface import nl_fallback
 from interface.chat import run_chat
 from interface.render import (
     render_scan, render_recommend, render_portfolio, render_compare, render_scenario,
     render_alerts, render_status,
 )
-
-console = Console()
 
 
 def init_db():
@@ -265,6 +266,58 @@ class MeridianCore:
         accuracy = PerformanceTracker().get_accuracy_by_classification()
         history = registry.history()
         render_status(version, weights, thresholds, DB_PATH, accuracy, history)
+
+    def cmd_universe(self):
+        assets = AssetUniverse().get_all()
+        console.print(f"[bold]Active universe — {len(assets)} assets[/bold]")
+        for a in assets:
+            has_signals = "" if signal_file_path(a["ticker"]).exists() else " [dim](no signals)[/dim]"
+            console.print(f"  [bold]{a['ticker']:6s}[/bold] {a['name']:28s} [dim]{a['sector'] or '—'}[/dim]{has_signals}")
+
+    def cmd_add(self, spec: str):
+        try:
+            parts = shlex.split(spec)   # honors quoted multi-word names
+        except ValueError:
+            parts = spec.split()
+        if not parts:
+            console.print("[red]Usage: meridian add <TICKER> [name] [sector][/red]")
+            return
+        ticker = parts[0].upper()
+        name = parts[1] if len(parts) > 1 else ticker
+        sector = parts[2] if len(parts) > 2 else None
+        AssetUniverse().add(ticker, name, sector=sector)
+        console.print(f"[green]Added[/green] {ticker} to the universe"
+                      + (f" [dim]({sector})[/dim]" if sector else ""))
+
+    def cmd_remove(self, ticker: str):
+        AssetUniverse().remove(ticker.upper())
+        console.print(f"[yellow]Removed[/yellow] {ticker.upper()} from the active universe")
+
+    def cmd_ask(self, query: str):
+        """Natural-language fallback — freeform analysis with current system context."""
+        try:
+            client = get_client()
+        except RuntimeError as e:
+            console.print(f"[red]Unknown command.[/red] {e}")
+            console.print("[dim]Type [bold]help[/bold] for the command list.[/dim]")
+            return
+
+        registry = ModelRegistry()
+        active = registry.get_active()
+        version = active["version"] if active else "1.0.0"
+        weights = active["weights"] if active else {}
+        tickers = AssetUniverse().tickers()
+        context = nl_fallback.build_context(version, weights, tickers)
+
+        console.print("[dim]Analyzing…[/dim]")
+        try:
+            answer = nl_fallback.analyze(query, context, client)
+        except Exception as e:  # surface API errors without crashing the REPL
+            console.print(f"[red]Analyst error:[/red] {e}")
+            return
+        from rich.panel import Panel
+        from rich import box as _box
+        console.print(Panel(answer, title="[bold cyan]MERIDIAN ANALYST[/bold cyan]", box=_box.ROUNDED))
 
 
 def main():

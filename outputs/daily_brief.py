@@ -6,8 +6,6 @@ Includes market overview, key signal changes, risk developments, and watchlist.
 """
 
 from datetime import datetime, timezone
-from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
 from rich import box
 
@@ -15,8 +13,7 @@ from core.scoring_engine import ACSResult
 from core.priority_engine import PrioritizedEntity
 from classification.classifier import classify_batch
 from core.decision_logic import DecisionOutput
-
-console = Console()
+from interface.console import console
 
 
 def generate(
