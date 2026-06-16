@@ -181,9 +181,13 @@ class MeridianCore:
             self.cmd_scenarios()
             return
 
+        from config.settings import UNIVERSE_SCAN_LIMIT
         universe = AssetUniverse()
+        assets = universe.get_all()
+        if UNIVERSE_SCAN_LIMIT:
+            assets = assets[:UNIVERSE_SCAN_LIMIT]
         universe_data = []
-        for asset in universe.get_all():
+        for asset in assets:
             signals, error = self.signal_source.for_ticker(asset["ticker"])
             if error:
                 continue

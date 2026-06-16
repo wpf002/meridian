@@ -188,23 +188,39 @@ class MeridianPipeline:
         tickers: list[str],
         persist: bool = True,
         source=None,
+        max_workers: int = 8,
     ) -> tuple[list[ScanResult], list[tuple[str, str]]]:
         """
         Scan every ticker that has signals from `source` (default: manual files).
-        Tickers without signals are skipped and reported. Returns (scans, skipped)
-        where skipped is a list of (ticker, reason). Scans are ranked by ACS desc.
+        Capped to UNIVERSE_SCAN_LIMIT tickers. Signal fetching runs concurrently
+        (it's network-bound for AURORA); scoring/persistence stays serial so the
+        SQLite writes don't race. Returns (scans, skipped) ranked by ACS desc.
         """
+        from concurrent.futures import ThreadPoolExecutor
+        from config.settings import UNIVERSE_SCAN_LIMIT
+
         if source is None:
             from core.signal_source import ManualSignalSource
             source = ManualSignalSource()
+        if UNIVERSE_SCAN_LIMIT:
+            tickers = tickers[:UNIVERSE_SCAN_LIMIT]
+        if not tickers:
+            return [], []
+
+        def fetch(ticker):
+            try:
+                return ticker, source.for_ticker(ticker)
+            except Exception as e:  # never let one ticker fail the whole scan
+                return ticker, (None, str(e))
+
+        with ThreadPoolExecutor(max_workers=min(max_workers, len(tickers))) as ex:
+            fetched = list(ex.map(fetch, tickers))
 
         scans: list[ScanResult] = []
         skipped: list[tuple[str, str]] = []
-
-        for ticker in tickers:
-            signals, error = source.for_ticker(ticker)
-            if error:
-                skipped.append((ticker, error))
+        for ticker, (signals, error) in fetched:
+            if error or not signals:
+                skipped.append((ticker, error or "no signals"))
                 continue
             scans.append(self.run_entity(ticker, signals, persist=persist))
 

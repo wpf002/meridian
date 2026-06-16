@@ -170,9 +170,13 @@ def run_scenario(name: str):
     scenario = get_scenario(name)
     if scenario is None:
         raise HTTPException(status_code=404, detail=f"Unknown scenario: {name}")
+    from config.settings import UNIVERSE_SCAN_LIMIT
     universe = AssetUniverse()
+    assets = universe.get_all()
+    if UNIVERSE_SCAN_LIMIT:
+        assets = assets[:UNIVERSE_SCAN_LIMIT]
     data = []
-    for asset in universe.get_all():
+    for asset in assets:
         signals, error = _source().for_ticker(asset["ticker"])
         if error:
             continue

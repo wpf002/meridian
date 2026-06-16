@@ -62,6 +62,9 @@ AURORA_BASE_URL = os.getenv("AURORA_BASE_URL", "http://localhost:8000/api")
 # Cache LLM-scored sentiment per ticker (seconds) so browsing the dashboard
 # doesn't re-bill the model on every page load.
 SENTIMENT_CACHE_TTL = int(os.getenv("SENTIMENT_CACHE_TTL", "600"))
+# Cap how many universe tickers the universe-wide commands score (keeps live
+# AURORA pages fast + cheap). 0 = no cap.
+UNIVERSE_SCAN_LIMIT = int(os.getenv("UNIVERSE_SCAN_LIMIT", "12"))
 
 # Syntrackr integration (tax-loss harvesting). When enabled, harvest candidates
 # are surfaced as an overlay on the recommendations table.

@@ -10,6 +10,7 @@ so it slots into the pipeline alongside the manual loader.
 """
 
 import time
+import threading
 
 from config.settings import SENTIMENT_CACHE_TTL
 from integrations.aurora.client import AuroraClient
@@ -25,6 +26,7 @@ class AuroraSignalSource:
         self._regime = None               # memoized for the source's lifetime
         self._fragility = None
         self._sentiment_cache = {}        # ticker -> (expires_at, signals)
+        self._lock = threading.Lock()     # guards the shared memo under parallel scans
 
     def _sentiment_for(self, ticker: str) -> list[dict]:
         """LLM-scored sentiment for a ticker, cached for sentiment_ttl seconds."""
@@ -41,17 +43,19 @@ class AuroraSignalSource:
         return self.client.health()
 
     def _get_regime(self):
-        if self._regime is None:
-            self._regime = self.client.regime()
-        return self._regime
+        with self._lock:
+            if self._regime is None:
+                self._regime = self.client.regime()
+            return self._regime
 
     def _get_fragility(self) -> dict:
-        if self._fragility is None:
-            try:
-                self._fragility = self.client.fragility()
-            except Exception:
-                self._fragility = {}
-        return self._fragility
+        with self._lock:
+            if self._fragility is None:
+                try:
+                    self._fragility = self.client.fragility()
+                except Exception:
+                    self._fragility = {}
+            return self._fragility
 
     def for_ticker(self, ticker: str):
         """Return (raw_signals, error). error is set only when nothing could be fetched."""
