@@ -68,6 +68,10 @@ SENTIMENT_CACHE_TTL = int(os.getenv("SENTIMENT_CACHE_TTL", "600"))
 # Cap how many universe tickers the universe-wide commands score (keeps live
 # AURORA pages fast + cheap). 0 = no cap.
 UNIVERSE_SCAN_LIMIT = int(os.getenv("UNIVERSE_SCAN_LIMIT", "12"))
+# How often (seconds) the API proactively re-scores the universe in the
+# background so the sentiment cache never goes cold and every page load gets the
+# fast warm path. Keep it under SENTIMENT_CACHE_TTL. 0 disables the warmer.
+UNIVERSE_REFRESH_SECONDS = int(os.getenv("UNIVERSE_REFRESH_SECONDS", "540"))
 
 # Syntrackr integration (tax-loss harvesting). When enabled, harvest candidates
 # are surfaced as an overlay on the recommendations table.

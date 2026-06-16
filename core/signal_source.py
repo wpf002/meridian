@@ -33,6 +33,14 @@ class FallbackSignalSource:
             return signals, None
         return self.fallback.for_ticker(ticker, lite=lite)
 
+    def warm(self, tickers: list[str], **kwargs) -> int:
+        """Delegate cache warming to whichever wrapped source supports it."""
+        total = 0
+        for src in (self.primary, self.fallback):
+            if hasattr(src, "warm"):
+                total += src.warm(tickers, **kwargs)
+        return total
+
 
 def default_source(llm_client=None) -> tuple[object, str]:
     """

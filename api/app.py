@@ -9,6 +9,8 @@ Run with:  python -m api          (or: uvicorn api.app:app --reload)
 Docs at:   http://localhost:8800/docs
 """
 
+import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Query
@@ -28,9 +30,43 @@ from outputs.alert_system import AlertSystem
 from outputs import daily_brief
 from api import serializers
 
+log = logging.getLogger("meridian.api")
+if not log.handlers:  # surface warmer/background logs alongside uvicorn's
+    _h = logging.StreamHandler()
+    _h.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+    log.addHandler(_h)
+    log.setLevel(logging.INFO)
+    log.propagate = False
+
+
+async def _warm_loop(app: FastAPI, interval: int):
+    """
+    Periodically re-score the universe in the background so the per-ticker
+    sentiment cache never goes cold — keeping every page load on the fast warm
+    path. Force-refreshes on each pass (resetting TTLs); errors are logged and
+    never crash the loop. Cancelled on shutdown.
+    """
+    from config.settings import UNIVERSE_SCAN_LIMIT
+
+    source = app.state.source
+    while True:
+        try:
+            tickers = AssetUniverse().tickers()
+            if UNIVERSE_SCAN_LIMIT:
+                tickers = tickers[:UNIVERSE_SCAN_LIMIT]
+            refreshed = await asyncio.to_thread(source.warm, tickers)
+            log.info("universe warmer refreshed %s tickers", refreshed)
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:  # keep the loop alive across transient failures
+            log.warning("universe warmer pass failed: %s", e)
+        await asyncio.sleep(interval)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from config.settings import UNIVERSE_REFRESH_SECONDS
+
     bootstrap.bootstrap()
     # Enable LLM sentiment scoring when an Anthropic key is configured.
     llm = None
@@ -39,7 +75,21 @@ async def lifespan(app: FastAPI):
     except RuntimeError:
         pass
     app.state.source, app.state.source_label = default_source(llm_client=llm)
+
+    # Start the background cache warmer when the live source supports it.
+    app.state.warmer = None
+    if UNIVERSE_REFRESH_SECONDS > 0 and hasattr(app.state.source, "warm"):
+        app.state.warmer = asyncio.create_task(_warm_loop(app, UNIVERSE_REFRESH_SECONDS))
+
     yield
+
+    warmer = getattr(app.state, "warmer", None)
+    if warmer:
+        warmer.cancel()
+        try:
+            await warmer
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(title="Meridian API", version="1.0.0", lifespan=lifespan)
