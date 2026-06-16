@@ -14,6 +14,9 @@ DATA_PROCESSED_PATH = os.getenv("DATA_PROCESSED_PATH", "./data/processed")
 # Anthropic
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 ANTHROPIC_MODEL = "claude-sonnet-4-6"
+# News-sentiment scoring runs per-ticker across the universe, so it uses a fast,
+# inexpensive model by default (headline sentiment doesn't need Sonnet).
+SENTIMENT_MODEL = os.getenv("SENTIMENT_MODEL", "claude-haiku-4-5")
 
 # ACS Scoring Weights
 SCORING_WEIGHTS = {

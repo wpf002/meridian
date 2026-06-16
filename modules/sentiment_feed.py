@@ -14,6 +14,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 from modules.base import make_signal, get_client, ANTHROPIC_MODEL
+from config.settings import SENTIMENT_MODEL
 
 
 class EntitySentiment(BaseModel):
@@ -39,7 +40,7 @@ SYSTEM_PROMPT = (
 
 class SentimentFeed:
 
-    def __init__(self, client=None, model: str = ANTHROPIC_MODEL):
+    def __init__(self, client=None, model: str = SENTIMENT_MODEL):
         self._client = client
         self.model = model
 

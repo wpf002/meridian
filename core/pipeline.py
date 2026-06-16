@@ -189,12 +189,19 @@ class MeridianPipeline:
         persist: bool = True,
         source=None,
         max_workers: int = 8,
+        lite: bool = False,
     ) -> tuple[list[ScanResult], list[tuple[str, str]]]:
         """
         Scan every ticker that has signals from `source` (default: manual files).
         Capped to UNIVERSE_SCAN_LIMIT tickers. Signal fetching runs concurrently
         (it's network-bound for AURORA); scoring/persistence stays serial so the
         SQLite writes don't race. Returns (scans, skipped) ranked by ACS desc.
+
+        The full 4-signal read (incl. news sentiment) is used by default —
+        sentiment is the main differentiator in a homogeneous regime, and it's
+        cheap because it's scored by SENTIMENT_MODEL (Haiku) and cached per ticker.
+        Pass lite=True to skip the sentiment call for very large watchlists where
+        even Haiku-per-ticker is too much.
         """
         from concurrent.futures import ThreadPoolExecutor
         from config.settings import UNIVERSE_SCAN_LIMIT
@@ -209,7 +216,7 @@ class MeridianPipeline:
 
         def fetch(ticker):
             try:
-                return ticker, source.for_ticker(ticker)
+                return ticker, source.for_ticker(ticker, lite=lite)
             except Exception as e:  # never let one ticker fail the whole scan
                 return ticker, (None, str(e))
 

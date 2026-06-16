@@ -57,8 +57,13 @@ class AuroraSignalSource:
                     self._fragility = {}
             return self._fragility
 
-    def for_ticker(self, ticker: str):
-        """Return (raw_signals, error). error is set only when nothing could be fetched."""
+    def for_ticker(self, ticker: str, lite: bool = False):
+        """
+        Return (raw_signals, error). error is set only when nothing could be fetched.
+        lite=True skips the LLM sentiment call — used for the universe-wide screen so
+        ranking a large watchlist stays fast and free. The asset detail uses the full
+        path (lite=False), adding news sentiment.
+        """
         ticker = ticker.upper()
         signals: list[dict] = []
         errors: list[str] = []
@@ -84,8 +89,9 @@ class AuroraSignalSource:
         except Exception as e:
             errors.append(f"fragility: {e}")
 
-        # Sentiment from news — only when an LLM client is configured (cached).
-        if self.llm_client:
+        # Sentiment from news — LLM-scored, cached. Skipped in lite mode (the
+        # universe screen) so ranking a big watchlist costs nothing.
+        if self.llm_client and not lite:
             try:
                 signals.extend(self._sentiment_for(ticker))
             except Exception as e:

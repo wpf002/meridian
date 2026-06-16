@@ -17,7 +17,8 @@ from config.settings import AURORA_ENABLED
 
 
 class ManualSignalSource:
-    def for_ticker(self, ticker: str):
+    def for_ticker(self, ticker: str, lite: bool = False):
+        # Manual files have no LLM step, so `lite` is a no-op here.
         return load_signals_for(ticker)
 
 
@@ -26,11 +27,11 @@ class FallbackSignalSource:
         self.primary = primary
         self.fallback = fallback
 
-    def for_ticker(self, ticker: str):
-        signals, error = self.primary.for_ticker(ticker)
+    def for_ticker(self, ticker: str, lite: bool = False):
+        signals, error = self.primary.for_ticker(ticker, lite=lite)
         if signals:
             return signals, None
-        return self.fallback.for_ticker(ticker)
+        return self.fallback.for_ticker(ticker, lite=lite)
 
 
 def default_source(llm_client=None) -> tuple[object, str]:
