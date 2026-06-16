@@ -82,6 +82,43 @@ def test_resolve_ticker_marks_pending(db):
     assert acc["CORE"]["correct"] == 1
 
 
+def test_snapshot_decisions_dedupes_per_day(db):
+    tracker = PerformanceTracker(db)
+    items = [
+        {"run_id": "r", "ticker": "NVDA", "classification": "CORE", "acs": 0.85},
+        {"run_id": "r", "ticker": "AAPL", "classification": "HIGH-ASYMMETRY", "acs": 0.70},
+    ]
+    assert tracker.snapshot_decisions(items) == 2
+    assert tracker.snapshot_decisions(items) == 0   # same day, same tickers -> no dupes
+    assert tracker.count_pending() == 2
+
+
+def test_resolve_due_grades_elapsed_calls(db):
+    from datetime import datetime, timezone, timedelta
+    tracker = PerformanceTracker(db)
+    tracker.log_decision("r1", "NVDA", "CORE", 0.85)    # bullish call
+    tracker.log_decision("r1", "TLT", "AVOID", 0.20)    # bearish call
+    entry = datetime.now(timezone.utc)
+    end = entry + timedelta(days=90)
+
+    def prices(ticker):
+        if ticker == "NVDA":
+            return [(entry.isoformat(), 100.0), (end.isoformat(), 110.0)]  # +10%
+        return [(entry.isoformat(), 100.0), (end.isoformat(), 95.0)]       # -5%
+
+    # Window not elapsed yet -> nothing graded.
+    assert tracker.resolve_due(prices, now=entry) == 0
+    assert tracker.count_pending() == 2
+
+    # 100 days on, both windows have elapsed and grade against real prices.
+    assert tracker.resolve_due(prices, now=entry + timedelta(days=100)) == 2
+    assert tracker.count_pending() == 0
+
+    acc = tracker.get_accuracy_by_classification()
+    assert acc["CORE"]["correct"] == 1    # bullish call, price rose -> correct
+    assert acc["AVOID"]["correct"] == 1   # avoid call, price fell -> correct
+
+
 def test_weight_adjuster_runs_a_cycle(db):
     ModelRegistry(db).register(version="1.0.0", notes="baseline")
     _seed_resolved_outcomes(db, n=24, accuracy=0.3)   # poor accuracy -> should rebalance

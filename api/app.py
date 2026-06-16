@@ -61,6 +61,12 @@ async def _warm_loop(app: FastAPI, interval: int):
             # cache is hot, so the next page load / scenario run is instant.
             await asyncio.to_thread(_scan_universe, True)
             await asyncio.to_thread(_scenario_baseline, True)
+            # Grade any calls whose 90-day window has elapsed, using real prices.
+            graded = await asyncio.to_thread(
+                PerformanceTracker().resolve_due, _aurora_price_lookup
+            )
+            if graded:
+                log.info("auto-graded %s due call(s)", graded)
             log.info("universe warmer refreshed %s tickers", refreshed)
         except asyncio.CancelledError:
             raise
@@ -132,7 +138,31 @@ def _scan_universe(force: bool = False):
         data = MeridianPipeline().run_universe(AssetUniverse().tickers(), source=_source())
         _scan_cache["at"] = time.time()
         _scan_cache["data"] = data
+        # Record today's calls so the track record can grade them later
+        # (idempotent — at most one row per ticker per day).
+        try:
+            scans = data[0]
+            PerformanceTracker().snapshot_decisions([
+                {"run_id": s.run_id, "ticker": s.entity,
+                 "classification": s.classification, "acs": s.result.acs}
+                for s in scans
+            ])
+        except Exception as e:
+            log.warning("decision snapshot failed: %s", e)
         return data
+
+
+def _aurora_price_lookup(ticker: str):
+    """(timestamp, close) price history for a ticker via AURORA, or [] if
+    unavailable (e.g. the manual source has no price feed)."""
+    source = app.state.source
+    client = getattr(getattr(source, "primary", source), "client", None)
+    if client is None:
+        return []
+    try:
+        return [(p.timestamp, p.close) for p in client.quote_history(ticker, period="6mo")]
+    except Exception:
+        return []
 
 
 # Raw per-ticker signals for every universe asset, fetched concurrently and
@@ -180,14 +210,18 @@ def health():
 
 @app.get("/api/status")
 def status():
+    from config.settings import OUTCOME_PERIOD_DAYS
     registry = ModelRegistry()
     active = registry.get_active()
+    tracker = PerformanceTracker()
     return {
         "model_version": active["version"] if active else None,
         "weights": active["weights"] if active else {},
         "thresholds": active["thresholds"] if active else {},
         "signal_source": getattr(app.state, "source_label", "manual"),
-        "accuracy": PerformanceTracker().get_accuracy_by_classification(),
+        "accuracy": tracker.get_accuracy_by_classification(),
+        "pending_outcomes": tracker.count_pending(),
+        "outcome_period_days": OUTCOME_PERIOD_DAYS,
         "model_history": [
             {"version": m["version"], "notes": m.get("notes")} for m in registry.history()
         ],

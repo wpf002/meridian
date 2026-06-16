@@ -106,7 +106,11 @@ export default function Status() {
           </p>
           {accuracy.length === 0 ? (
             <div className="text-muted text-sm">
-              Nothing to grade yet — this fills in as past calls play out over time.
+              No graded calls yet. Each day's picks are recorded and automatically graded
+              about {data.outcome_period_days ?? 90} days later against their real return.
+              {data.pending_outcomes
+                ? ` ${data.pending_outcomes} call${data.pending_outcomes === 1 ? '' : 's'} recorded so far — the first grades land ~${data.outcome_period_days ?? 90} days after they were logged.`
+                : ' Browse Recommendations to start recording today’s calls.'}
             </div>
           ) : (
             <table className="w-full">
