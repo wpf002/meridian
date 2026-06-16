@@ -4,7 +4,29 @@ import { getScan, getUniverse, compareAssets, addAsset, removeAsset } from '../a
 import Badge from '../components/Badge.jsx'
 import AcsComponentsChart from '../components/AcsComponentsChart.jsx'
 import { Loading, ErrorState } from '../components/states.jsx'
-import { CONVICTION_COLOR, ACTION_COLOR, deltaColor, humanize, titleCase, score, scoreSigned, actionLabel } from '../lib/format.js'
+import { CONVICTION_COLOR, ACTION_COLOR, deltaColor, humanize, titleCase, score, scoreSigned, actionLabel, tierLabel } from '../lib/format.js'
+
+// The engine builds the rationale as pipe-separated facts in its own shorthand.
+// Split each into its own row and translate the shorthand to the UI's wording.
+function rationaleRows(raw) {
+  const pts = (n) => Math.round(parseFloat(n) * 100)
+  return raw
+    .split('|')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((seg) =>
+      seg
+        .replace(/_/g, ' ')
+        .replace(/ACS\s+([0-9.]+)/g, (_, n) => `Score ${pts(n)}`)
+        .replace(/MAS\s+([0-9.]+)/g, (_, n) => `Macro ${pts(n)}`)
+        .replace(/TAS\s+([0-9.]+)/g, (_, n) => `Price trend ${pts(n)}`)
+        .replace(/SAS\s+([0-9.]+)/g, (_, n) => `News ${pts(n)}`)
+        .replace(/SRS\s+([0-9.]+)/g, (_, n) => `Risk ${pts(n)}`)
+        .replace(/Classification:\s*([A-Z-]+)/g, (_, c) => `Tier: ${tierLabel(c)}`)
+        .replace(/Action:\s*([A-Z]+)/g, (_, a) => `Signal: ${actionLabel(a)}`)
+        .replace(/Conviction:\s*(HIGH|MEDIUM|LOW)/g, (_, v) => `Confidence: ${titleCase(v)}`),
+    )
+}
 
 function Stat({ label, value, className = '' }) {
   return (
@@ -115,7 +137,7 @@ function WatchlistButton({ ticker }) {
   if (inList === null) return null
   return (
     <button onClick={toggle} disabled={busy} className={`btn ml-auto ${inList ? 'btn-active' : ''}`}>
-      {inList ? '✓ In watchlist' : '+ Add to watchlist'}
+      {inList ? '✓ Watchlist' : '+ Add to watchlist'}
     </button>
   )
 }
@@ -201,7 +223,11 @@ export default function Asset() {
 
           <div className="card p-4 mb-6">
             <div className="label mb-1.5">Rationale</div>
-            <div className="text-sm font-mono text-ink/90">{scan.rationale.replace(/_/g, ' ')}</div>
+            <div className="text-sm font-mono text-ink/90 space-y-1">
+              {rationaleRows(scan.rationale).map((row, i) => (
+                <div key={i}>{row}</div>
+              ))}
+            </div>
           </div>
 
           <ComparePanel ticker={scan.entity} />

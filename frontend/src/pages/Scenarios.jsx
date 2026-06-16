@@ -25,7 +25,6 @@ function Banner({ report }) {
         <span className="flex items-center gap-2">
           <span className="label">Market shifts to</span>
           <span className="text-tactical font-mono">{regimeLabel(report.scenario_regime)}</span>
-          <span className="text-faint">(today: {regimeLabel(report.current_regime)})</span>
         </span>
       </div>
     </div>

@@ -42,16 +42,18 @@ export default function Portfolio() {
       />
 
       <div className="grid md:grid-cols-[280px_1fr] gap-6">
-        <div className="card p-5 h-fit">
+        <div className="card p-5 h-fit self-start md:sticky md:top-4">
           <ResponsiveContainer width="100%" height={210}>
             <PieChart>
-              <Pie data={pie} dataKey="value" nameKey="name" innerRadius={56} outerRadius={92} paddingAngle={2}>
+              <Pie data={pie} dataKey="value" nameKey="name" innerRadius={56} outerRadius={92} paddingAngle={2} isAnimationActive={false}>
                 {pie.map((d) => (
                   <Cell key={d.name} fill={SLEEVE_COLOR[d.name] || '#5d7689'} stroke="#04070b" strokeWidth={2} />
                 ))}
               </Pie>
               <Tooltip
                 contentStyle={{ background: '#08111a', border: '1px solid #15303d', borderRadius: 8 }}
+                itemStyle={{ color: '#dceaf0' }}
+                labelStyle={{ color: '#dceaf0' }}
                 formatter={(v, n) => [pct(v), sleeveLabel(n)]}
               />
             </PieChart>
