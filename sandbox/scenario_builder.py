@@ -357,6 +357,277 @@ _register(Scenario(
 ))
 
 
+_register(Scenario(
+    name="Yield Curve Steepening",
+    description="Long rates rise faster than short — discounting future profits gets pricier.",
+    regime=INFLATIONARY,
+    impacts=[
+        ScenarioImpact("macro", "bearish", 0.6, 0.82, label="term-premium repricing"),
+        ScenarioImpact("tactical", "bearish", 0.5, 0.76, sectors=["Technology"], label="long-duration drag"),
+        ScenarioImpact("sentiment", "bullish", 0.3, 0.65, sectors=["Financials"], label="wider net margins"),
+    ],
+))
+
+_register(Scenario(
+    name="Yield Curve Inversion",
+    description="Short rates top long rates — the market's classic recession warning flashes.",
+    regime=RISK_OFF,
+    impacts=[
+        ScenarioImpact("macro", "bearish", 0.6, 0.8, label="recession signal"),
+        ScenarioImpact("sentiment", "bearish", 0.5, 0.76, label="growth-scare positioning"),
+        ScenarioImpact("structural_risk", "bullish", 0.4, 0.72, sectors=["Financials"], label="margin squeeze"),
+    ],
+))
+
+_register(Scenario(
+    name="Wage-Price Spiral",
+    description="Pay and prices chase each other higher; margins and the Fed both get squeezed.",
+    regime=INFLATIONARY,
+    impacts=[
+        ScenarioImpact("macro", "bearish", 0.7, 0.85, label="entrenched inflation"),
+        ScenarioImpact("tactical", "bearish", 0.5, 0.76, label="labor-cost drag"),
+    ],
+))
+
+_register(Scenario(
+    name="Labor Market Crack",
+    description="Hiring stalls and unemployment ticks up; consumer demand follows it down.",
+    regime=RISK_OFF,
+    impacts=[
+        ScenarioImpact("macro", "bearish", 0.7, 0.85, label="rising unemployment"),
+        ScenarioImpact("tactical", "bearish", 0.5, 0.78, sectors=["Consumer Discretionary"], label="demand rollover"),
+    ],
+))
+
+_register(Scenario(
+    name="Housing Crash",
+    description="Home prices roll over; mortgage credit and construction-exposed names take the hit.",
+    regime=LIQUIDITY_CONTRACTION,
+    impacts=[
+        ScenarioImpact("structural_risk", "bullish", 0.7, 0.85, sectors=["Financials", "Real Estate"], label="mortgage stress"),
+        ScenarioImpact("macro", "bearish", 0.6, 0.8, label="wealth-effect drag"),
+    ],
+))
+
+_register(Scenario(
+    name="Sovereign Debt Crisis",
+    description="A government's borrowing costs spiral; contagion fear hits banks and risk assets.",
+    regime=RISK_OFF,
+    impacts=[
+        ScenarioImpact("structural_risk", "bullish", 0.7, 0.88, sectors=["Financials"], label="sovereign exposure"),
+        ScenarioImpact("sentiment", "bearish", 0.6, 0.8, label="contagion fear"),
+        ScenarioImpact("macro", "bearish", 0.5, 0.78, label="risk-premium spike"),
+    ],
+))
+
+_register(Scenario(
+    name="Currency Crisis",
+    description="An emerging-market FX blowup ripples through global risk appetite.",
+    regime=RISK_OFF,
+    impacts=[
+        ScenarioImpact("sentiment", "bearish", 0.6, 0.8, label="contagion risk"),
+        ScenarioImpact("tactical", "bearish", 0.5, 0.76, label="EM de-risking"),
+        ScenarioImpact("structural_risk", "bullish", 0.4, 0.72, label="cross-border stress"),
+    ],
+))
+
+_register(Scenario(
+    name="Trade War",
+    description="Retaliatory tariffs disrupt global supply chains; exporters and industrials suffer.",
+    regime=RISK_OFF,
+    impacts=[
+        ScenarioImpact("tactical", "bearish", 0.6, 0.82, sectors=["Industrials", "Materials"], label="export hit"),
+        ScenarioImpact("macro", "bearish", 0.5, 0.78, label="global-growth drag"),
+    ],
+))
+
+_register(Scenario(
+    name="Tariff Shock",
+    description="Sweeping import tariffs push input costs up and squeeze import-reliant margins.",
+    regime=INFLATIONARY,
+    impacts=[
+        ScenarioImpact("macro", "bearish", 0.6, 0.82, label="cost-push inflation"),
+        ScenarioImpact("tactical", "bearish", 0.5, 0.76, sectors=["Consumer Discretionary"], label="margin hit"),
+    ],
+))
+
+_register(Scenario(
+    name="Supply Chain Shock",
+    description="A logistics breakdown chokes inventories; shortages drive prices and delays.",
+    regime=INFLATIONARY,
+    impacts=[
+        ScenarioImpact("macro", "bearish", 0.6, 0.8, label="supply disruption"),
+        ScenarioImpact("tactical", "bearish", 0.5, 0.76, sectors=["Technology", "Industrials"], label="component shortage"),
+    ],
+))
+
+_register(Scenario(
+    name="Pandemic Wave",
+    description="A new health shock hits travel and discretionary spend; healthcare gets a bid.",
+    regime=RISK_OFF,
+    impacts=[
+        ScenarioImpact("tactical", "bearish", 0.7, 0.85, sectors=["Consumer Discretionary"], label="demand shutdown"),
+        ScenarioImpact("sentiment", "bullish", 0.5, 0.75, sectors=["Healthcare"], label="defensive/vaccine bid"),
+        ScenarioImpact("sentiment", "bearish", 0.5, 0.76, label="risk aversion"),
+    ],
+))
+
+_register(Scenario(
+    name="Energy Crisis",
+    description="A power and fuel crunch lifts energy but raises costs for everyone else.",
+    regime=INFLATIONARY,
+    impacts=[
+        ScenarioImpact("sentiment", "bullish", 0.7, 0.85, sectors=["Energy"], label="scarcity premium"),
+        ScenarioImpact("macro", "bearish", 0.6, 0.8, label="energy-cost drag"),
+        ScenarioImpact("structural_risk", "bullish", 0.4, 0.7, sectors=["Utilities"], label="input-cost stress"),
+    ],
+))
+
+_register(Scenario(
+    name="Crypto Crash",
+    description="A digital-asset blowup torches speculative risk appetite across the board.",
+    regime=RISK_OFF,
+    impacts=[
+        ScenarioImpact("sentiment", "bearish", 0.7, 0.82, label="speculative unwind"),
+        ScenarioImpact("tactical", "bearish", 0.5, 0.76, sectors=["Technology", "Financials"], label="risk contagion"),
+    ],
+))
+
+_register(Scenario(
+    name="Rotation to Value",
+    description="Money rotates out of expensive growth into cheaper value and cyclicals.",
+    regime=RISK_OFF,
+    impacts=[
+        ScenarioImpact("tactical", "bearish", 0.7, 0.84, sectors=["Technology"], label="growth de-rating"),
+        ScenarioImpact("sentiment", "bullish", 0.5, 0.75, sectors=["Financials", "Energy"], label="value bid"),
+    ],
+))
+
+_register(Scenario(
+    name="Mega-cap Rally",
+    description="Capital concentrates in the largest tech names; breadth narrows but indices rip.",
+    regime=RISK_ON,
+    impacts=[
+        ScenarioImpact("tactical", "bullish", 0.8, 0.86, sectors=["Technology"], label="mega-cap momentum"),
+        ScenarioImpact("sentiment", "bullish", 0.6, 0.78, sectors=["Technology"], label="AI optimism"),
+    ],
+))
+
+_register(Scenario(
+    name="Healthcare Selloff",
+    description="A policy or pricing shock pressures drugmakers and managed care.",
+    regime=RISK_OFF,
+    impacts=[
+        ScenarioImpact("tactical", "bearish", 0.7, 0.84, sectors=["Healthcare"], label="policy overhang"),
+        ScenarioImpact("sentiment", "bearish", 0.5, 0.76, sectors=["Healthcare"], label="pricing fear"),
+    ],
+))
+
+_register(Scenario(
+    name="Big Tech Crackdown",
+    description="Antitrust and regulation tighten around platform giants; multiples compress.",
+    regime=RISK_OFF,
+    impacts=[
+        ScenarioImpact("structural_risk", "bullish", 0.6, 0.82, sectors=["Technology"], label="regulatory risk"),
+        ScenarioImpact("sentiment", "bearish", 0.6, 0.8, sectors=["Technology"], label="overhang"),
+    ],
+))
+
+_register(Scenario(
+    name="Margin Compression",
+    description="Costs rise faster than prices; profitability erodes across the board.",
+    regime=RISK_OFF,
+    impacts=[
+        ScenarioImpact("tactical", "bearish", 0.6, 0.82, label="profit squeeze"),
+        ScenarioImpact("sentiment", "bearish", 0.4, 0.72, label="guidance cuts"),
+    ],
+))
+
+_register(Scenario(
+    name="Disinflation Rally",
+    description="Inflation cools faster than feared; the Fed relaxes and risk assets cheer.",
+    regime=RISK_ON,
+    impacts=[
+        ScenarioImpact("macro", "bullish", 0.7, 0.85, label="cooling inflation"),
+        ScenarioImpact("sentiment", "bullish", 0.5, 0.76, label="relief rally"),
+    ],
+))
+
+_register(Scenario(
+    name="Hard Landing",
+    description="Tightening tips the economy into a sharp recession with little warning.",
+    regime=RISK_OFF,
+    impacts=[
+        ScenarioImpact("macro", "bearish", 0.85, 0.92, label="abrupt contraction"),
+        ScenarioImpact("tactical", "bearish", 0.7, 0.85, label="earnings collapse"),
+        ScenarioImpact("structural_risk", "bullish", 0.5, 0.78, label="systemic stress"),
+    ],
+))
+
+_register(Scenario(
+    name="Reflation Trade",
+    description="Growth and inflation pick up together; cyclicals and commodities lead.",
+    regime=RISK_ON,
+    impacts=[
+        ScenarioImpact("tactical", "bullish", 0.6, 0.8, sectors=["Energy", "Materials", "Industrials"], label="cyclical bid"),
+        ScenarioImpact("sentiment", "bullish", 0.5, 0.75, label="growth optimism"),
+    ],
+))
+
+_register(Scenario(
+    name="Flight to Quality",
+    description="Investors dump risk for safety; bonds and staples win, high-beta loses.",
+    regime=RISK_OFF,
+    impacts=[
+        ScenarioImpact("tactical", "bearish", 0.6, 0.82, label="risk-off rotation"),
+        ScenarioImpact("sentiment", "bullish", 0.5, 0.75, sectors=["Consumer Staples", "Utilities", "Fixed Income"], label="safe-haven bid"),
+    ],
+))
+
+_register(Scenario(
+    name="Black Swan",
+    description="A sudden, unforeseen shock spikes volatility and correlations everywhere.",
+    regime=RISK_OFF,
+    impacts=[
+        ScenarioImpact("tactical", "bearish", 0.9, 0.9, label="indiscriminate selling"),
+        ScenarioImpact("sentiment", "bearish", 0.8, 0.85, label="panic"),
+        ScenarioImpact("structural_risk", "bullish", 0.7, 0.85, label="systemic stress"),
+    ],
+))
+
+_register(Scenario(
+    name="Goldilocks Boom",
+    description="Steady growth, tame inflation and easy policy — a broad, durable bull market.",
+    regime=RISK_ON,
+    impacts=[
+        ScenarioImpact("macro", "bullish", 0.7, 0.86, label="ideal backdrop"),
+        ScenarioImpact("tactical", "bullish", 0.6, 0.8, label="broad participation"),
+        ScenarioImpact("sentiment", "bullish", 0.5, 0.76, label="confidence"),
+    ],
+))
+
+_register(Scenario(
+    name="Semiconductor Shortage",
+    description="Chip supply can't keep up; pricing power for makers, pain for chip buyers.",
+    regime=INFLATIONARY,
+    impacts=[
+        ScenarioImpact("sentiment", "bullish", 0.6, 0.8, sectors=["Technology"], label="pricing power"),
+        ScenarioImpact("tactical", "bearish", 0.5, 0.76, sectors=["Consumer Discretionary", "Industrials"], label="production drag"),
+    ],
+))
+
+_register(Scenario(
+    name="Quantitative Easing",
+    description="Central banks restart asset purchases; liquidity floods back into risk.",
+    regime=RISK_ON,
+    impacts=[
+        ScenarioImpact("macro", "bullish", 0.7, 0.85, label="liquidity injection"),
+        ScenarioImpact("tactical", "bullish", 0.5, 0.78, label="risk-on flows"),
+        ScenarioImpact("sentiment", "bullish", 0.4, 0.72, sectors=["Technology"], label="duration tailwind"),
+    ],
+))
+
+
 def get_scenario(name: str) -> Optional[Scenario]:
     """Look up a scenario by name (case/punctuation-insensitive)."""
     return SCENARIOS.get(_slugify(name))
