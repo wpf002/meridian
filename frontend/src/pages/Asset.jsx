@@ -189,10 +189,6 @@ export default function Asset() {
                   <dt className="text-muted">Signal Agreement</dt>
                   <dd className="font-mono">{scan.signal_agreement.toFixed(2)}</dd>
                 </div>
-                <div className="flex justify-between">
-                  <dt className="text-muted">Model</dt>
-                  <dd className="font-mono">v{scan.model_version}</dd>
-                </div>
                 <div>
                   <dt className="text-muted mb-1.5">Flags</dt>
                   <dd className="flex flex-wrap gap-1.5">
