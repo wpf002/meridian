@@ -9,17 +9,33 @@ Implements the signal-source protocol (`for_ticker(ticker) -> (signals, error)`)
 so it slots into the pipeline alongside the manual loader.
 """
 
+import time
+
+from config.settings import SENTIMENT_CACHE_TTL
 from integrations.aurora.client import AuroraClient
 from integrations.aurora import adapter
 
 
 class AuroraSignalSource:
 
-    def __init__(self, client: AuroraClient = None, llm_client=None):
+    def __init__(self, client: AuroraClient = None, llm_client=None, sentiment_ttl: int = SENTIMENT_CACHE_TTL):
         self.client = client or AuroraClient()
         self.llm_client = llm_client      # optional — enables sentiment scoring
+        self.sentiment_ttl = sentiment_ttl
         self._regime = None               # memoized for the source's lifetime
         self._fragility = None
+        self._sentiment_cache = {}        # ticker -> (expires_at, signals)
+
+    def _sentiment_for(self, ticker: str) -> list[dict]:
+        """LLM-scored sentiment for a ticker, cached for sentiment_ttl seconds."""
+        now = time.time()
+        hit = self._sentiment_cache.get(ticker)
+        if hit and hit[0] > now:
+            return hit[1]
+        news = self.client.news([ticker])
+        signals = adapter.sentiment_signals(ticker, news, self.llm_client)
+        self._sentiment_cache[ticker] = (now + self.sentiment_ttl, signals)
+        return signals
 
     def available(self) -> bool:
         return self.client.health()
@@ -64,11 +80,10 @@ class AuroraSignalSource:
         except Exception as e:
             errors.append(f"fragility: {e}")
 
-        # Sentiment from news — only when an LLM client is configured.
+        # Sentiment from news — only when an LLM client is configured (cached).
         if self.llm_client:
             try:
-                news = self.client.news([ticker])
-                signals.extend(adapter.sentiment_signals(ticker, news, self.llm_client))
+                signals.extend(self._sentiment_for(ticker))
             except Exception as e:
                 errors.append(f"news: {e}")
 

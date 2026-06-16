@@ -59,6 +59,9 @@ OUTCOME_PERIOD_DAYS = int(os.getenv("OUTCOME_PERIOD_DAYS", "90"))
 # Meridian ingests signals from AURORA's API; manual JSON remains the fallback.
 AURORA_ENABLED = os.getenv("AURORA_ENABLED", "false").lower() in ("1", "true", "yes")
 AURORA_BASE_URL = os.getenv("AURORA_BASE_URL", "http://localhost:8000/api")
+# Cache LLM-scored sentiment per ticker (seconds) so browsing the dashboard
+# doesn't re-bill the model on every page load.
+SENTIMENT_CACHE_TTL = int(os.getenv("SENTIMENT_CACHE_TTL", "600"))
 
 # Syntrackr integration (tax-loss harvesting). When enabled, harvest candidates
 # are surfaced as an overlay on the recommendations table.

@@ -55,13 +55,17 @@ class AuroraClient:
         return [QuoteHistoryPoint.from_dict(d) for d in data]
 
     def fragility(self) -> dict[str, float]:
-        """Return {symbol: fragility 0-100} from the intelligence fragility snapshot."""
+        """Return {symbol: fragility 0-100} from the intelligence fragility snapshot.
+
+        AURORA's per-position field is `score` (0-100); accept `fragility` too.
+        """
         data = self._get_json("/intelligence/fragility")
         out = {}
         for pos in (data.get("positions", []) if isinstance(data, dict) else []):
             sym = pos.get("symbol")
             if sym is not None:
-                out[sym.upper()] = float(pos.get("fragility", 0) or 0)
+                val = pos.get("score", pos.get("fragility", 0))
+                out[sym.upper()] = float(val or 0)
         return out
 
     def news(self, symbols: list[str], limit: int = 20) -> list[NewsItem]:
