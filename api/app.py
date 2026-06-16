@@ -57,9 +57,10 @@ async def _warm_loop(app: FastAPI, interval: int):
             if UNIVERSE_SCAN_LIMIT:
                 tickers = tickers[:UNIVERSE_SCAN_LIMIT]
             refreshed = await asyncio.to_thread(source.warm, tickers)
-            # Rebuild the cached scan while the sentiment cache is hot, so the
-            # next page load is instant rather than paying for a fresh scan.
+            # Rebuild the cached scan + scenario baseline while the sentiment
+            # cache is hot, so the next page load / scenario run is instant.
             await asyncio.to_thread(_scan_universe, True)
+            await asyncio.to_thread(_scenario_baseline, True)
             log.info("universe warmer refreshed %s tickers", refreshed)
         except asyncio.CancelledError:
             raise
@@ -131,6 +132,42 @@ def _scan_universe(force: bool = False):
         data = MeridianPipeline().run_universe(AssetUniverse().tickers(), source=_source())
         _scan_cache["at"] = time.time()
         _scan_cache["data"] = data
+        return data
+
+
+# Raw per-ticker signals for every universe asset, fetched concurrently and
+# cached. Reused across scenario runs so flipping between scenarios is fast
+# instead of re-fetching the whole universe serially each time.
+_baseline_cache = {"at": 0.0, "data": None}
+_baseline_lock = threading.Lock()
+
+
+def _scenario_baseline(force: bool = False):
+    from concurrent.futures import ThreadPoolExecutor
+    from config.settings import UNIVERSE_RESULT_TTL, UNIVERSE_SCAN_LIMIT
+    with _baseline_lock:
+        cached = _baseline_cache["data"]
+        if not force and cached is not None and (time.time() - _baseline_cache["at"]) < UNIVERSE_RESULT_TTL:
+            return cached
+        assets = AssetUniverse().get_all()
+        if UNIVERSE_SCAN_LIMIT:
+            assets = assets[:UNIVERSE_SCAN_LIMIT]
+        source = _source()
+
+        def fetch(asset):
+            try:
+                signals, error = source.for_ticker(asset["ticker"])
+            except Exception:
+                return None
+            if error or not signals:
+                return None
+            return {"ticker": asset["ticker"], "sector": asset["sector"],
+                    "asset_class": asset["asset_class"], "signals": signals}
+
+        with ThreadPoolExecutor(max_workers=min(8, max(1, len(assets)))) as ex:
+            data = [d for d in ex.map(fetch, assets) if d]
+        _baseline_cache["at"] = time.time()
+        _baseline_cache["data"] = data
         return data
 
 
@@ -239,18 +276,7 @@ def run_scenario(name: str):
     scenario = get_scenario(name)
     if scenario is None:
         raise HTTPException(status_code=404, detail=f"Unknown scenario: {name}")
-    from config.settings import UNIVERSE_SCAN_LIMIT
-    universe = AssetUniverse()
-    assets = universe.get_all()
-    if UNIVERSE_SCAN_LIMIT:
-        assets = assets[:UNIVERSE_SCAN_LIMIT]
-    data = []
-    for asset in assets:
-        signals, error = _source().for_ticker(asset["ticker"])
-        if error:
-            continue
-        data.append({"ticker": asset["ticker"], "sector": asset["sector"],
-                     "asset_class": asset["asset_class"], "signals": signals})
+    data = _scenario_baseline()
     if not data:
         raise HTTPException(status_code=400, detail="No assets with signals")
     return Simulator(pipeline=MeridianPipeline()).run_scenario(scenario, data).to_dict()
