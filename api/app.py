@@ -12,6 +12,7 @@ Docs at:   http://localhost:8800/docs
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 
 from core import bootstrap
 from core.pipeline import MeridianPipeline
@@ -35,6 +36,17 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Meridian API", version="1.0.0", lifespan=lifespan)
+
+# Allow the Vite dev server (and a built frontend) to call the API.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173", "http://127.0.0.1:5173",
+        "http://localhost:4173", "http://127.0.0.1:4173",
+    ],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def _source():

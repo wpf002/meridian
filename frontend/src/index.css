@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-base text-ink font-sans antialiased;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-panel border border-edge rounded-lg;
+  }
+  .th {
+    @apply text-left text-xs uppercase tracking-wide text-muted font-medium px-3 py-2 border-b border-edge;
+  }
+  .td {
+    @apply px-3 py-2 border-b border-edge/60 text-sm;
+  }
+}
