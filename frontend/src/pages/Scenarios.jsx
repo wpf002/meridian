@@ -49,8 +49,12 @@ export default function Scenarios() {
   const run = (scenario) => {
     setActive(scenario)
     setReport(null)
+    setError(null)
     setBusy(true)
-    runScenario(scenario.slug).then(setReport).catch((e) => setError(e)).finally(() => setBusy(false))
+    runScenario(scenario.slug)
+      .then(setReport)
+      .catch((e) => setError(e.response?.data?.detail || e.message || String(e)))
+      .finally(() => setBusy(false))
   }
 
   if (error && !list) return <ErrorState error={error} />
@@ -74,6 +78,13 @@ export default function Scenarios() {
       </div>
 
       {busy && <Loading label={`Running ${active?.name}…`} />}
+
+      {error && !busy && (
+        <div className="card p-4 border-avoid/40 max-w-lg">
+          <div className="text-avoid font-medium mb-1">Scenario run failed</div>
+          <div className="text-muted text-sm font-mono">{String(error)}</div>
+        </div>
+      )}
 
       {report && !busy && (
         <>
