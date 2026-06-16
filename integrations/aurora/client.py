@@ -19,7 +19,7 @@ from integrations.aurora.schema import (
 
 class AuroraClient:
 
-    def __init__(self, base_url: str = AURORA_BASE_URL, timeout: float = 5.0):
+    def __init__(self, base_url: str = AURORA_BASE_URL, timeout: float = 15.0):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 

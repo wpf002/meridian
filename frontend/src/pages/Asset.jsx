@@ -178,7 +178,7 @@ export default function Asset() {
 
           <div className="card p-4 mb-6">
             <div className="label mb-1.5">Rationale</div>
-            <div className="text-sm font-mono text-ink/90">{scan.rationale}</div>
+            <div className="text-sm font-mono text-ink/90">{scan.rationale.replace(/_/g, ' ')}</div>
           </div>
 
           <ComparePanel ticker={scan.entity} />
