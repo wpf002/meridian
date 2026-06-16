@@ -10,6 +10,16 @@ export default defineConfig({
       '/api': { target: 'http://localhost:8800', changeOrigin: true },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router-dom'],
+          recharts: ['recharts'],
+        },
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,

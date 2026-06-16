@@ -34,11 +34,12 @@ export default function Scenarios() {
     getScenarios().then((d) => setList(d.scenarios)).catch(setError)
   }, [])
 
-  const run = (name) => {
-    setActive(name)
+  // Call by slug (clean [a-z0-9_], survives any proxy) — not the display name.
+  const run = (scenario) => {
+    setActive(scenario)
     setReport(null)
     setBusy(true)
-    runScenario(name).then(setReport).catch((e) => setError(e)).finally(() => setBusy(false))
+    runScenario(scenario.slug).then(setReport).catch((e) => setError(e)).finally(() => setBusy(false))
   }
 
   if (error && !list) return <ErrorState error={error} />
@@ -53,10 +54,10 @@ export default function Scenarios() {
         {list.map((s) => (
           <button
             key={s.slug}
-            onClick={() => run(s.name)}
+            onClick={() => run(s)}
             title={s.description}
             className={`px-3 py-2 rounded border text-sm ${
-              active === s.name
+              active?.slug === s.slug
                 ? 'bg-accent/20 border-accent/50 text-ink'
                 : 'border-edge text-muted hover:text-ink hover:border-accent/40'
             }`}
@@ -66,7 +67,7 @@ export default function Scenarios() {
         ))}
       </div>
 
-      {busy && <Loading label={`Running ${active}…`} />}
+      {busy && <Loading label={`Running ${active?.name}…`} />}
 
       {report && !busy && (
         <>
