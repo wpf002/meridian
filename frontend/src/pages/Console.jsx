@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { runCommand, COMMANDS } from '../lib/commands.js'
+import { runCommand, COMMAND_GROUPS } from '../lib/commands.js'
 import Badge from '../components/Badge.jsx'
 import {
   humanize, pct, deltaColor, titleCase, CONVICTION_COLOR, ACTION_COLOR,
@@ -14,11 +14,16 @@ const MUT = 'text-muted'
 
 function Help() {
   return (
-    <div className="grid sm:grid-cols-2 gap-x-8 gap-y-1">
-      {COMMANDS.map(([c, d]) => (
-        <div key={c} className="flex gap-3">
-          <span className={`${GREEN} font-mono whitespace-nowrap`}>{c}</span>
-          <span className={MUT}>{d}</span>
+    <div className="columns-1 sm:columns-2 gap-8">
+      {COMMAND_GROUPS.map((g) => (
+        <div key={g.title} className="mb-3 break-inside-avoid">
+          <div className="text-blue text-xs uppercase tracking-wider mb-1">{g.title}</div>
+          {g.items.map(([c, d]) => (
+            <div key={c} className="flex gap-3 leading-relaxed">
+              <span className={`${GREEN} font-mono whitespace-nowrap w-40 shrink-0`}>{c}</span>
+              <span className={`${MUT} text-xs self-center`}>{d}</span>
+            </div>
+          ))}
         </div>
       ))}
     </div>
@@ -175,7 +180,16 @@ function StatusOut({ d }) {
 }
 
 function TextOut({ d }) {
-  return <div className="text-green">{d}</div>
+  if (Array.isArray(d)) {
+    return (
+      <div className="font-mono text-sm space-y-0.5">
+        {d.map((line, i) => (
+          <div key={i} className={i === 0 ? 'text-ink' : 'text-muted'}>{line}</div>
+        ))}
+      </div>
+    )
+  }
+  return <div className="text-green font-mono text-sm">{d}</div>
 }
 
 function AlertsOut({ d }) {

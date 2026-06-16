@@ -258,6 +258,14 @@ def run_scenario(name: str):
 
 # --- reporting -------------------------------------------------------------
 
+@app.get("/api/regime")
+def regime():
+    scans, _ = _scan_universe()
+    if not scans:
+        raise HTTPException(status_code=400, detail="No scored assets to infer a regime")
+    return {"regime": classify_current_regime([s.result for s in scans])}
+
+
 @app.get("/api/brief")
 def brief():
     scans, _ = _scan_universe()

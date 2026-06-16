@@ -21,5 +21,6 @@ export const getScenarios = () => api.get('/scenarios').then((r) => r.data)
 export const runScenario = (name) =>
   api.post(`/scenario/${encodeURIComponent(name)}`).then((r) => r.data)
 export const getBrief = () => api.get('/brief').then((r) => r.data)
+export const getRegime = () => api.get('/regime').then((r) => r.data)
 export const getAlerts = () => api.get('/alerts').then((r) => r.data)
 export const ackAlert = (id) => api.post(`/alerts/${id}/ack`).then((r) => r.data)
