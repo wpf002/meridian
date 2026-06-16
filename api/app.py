@@ -25,6 +25,7 @@ from core.signal_source import default_source
 from classification.asset_universe import AssetUniverse
 from portfolio.constructor import PortfolioConstructor
 from meta_learning.performance_tracker import PerformanceTracker
+from meta_learning.weight_adjuster import WeightAdjuster
 from governance.model_registry import ModelRegistry
 from sandbox.scenario_builder import get_scenario, list_scenarios
 from sandbox.simulator import Simulator, classify_current_regime
@@ -67,6 +68,12 @@ async def _warm_loop(app: FastAPI, interval: int):
             )
             if graded:
                 log.info("auto-graded %s due call(s)", graded)
+                # New outcomes landed — let the model self-tune. run_cycle() is a
+                # no-op until there are >= MIN_SAMPLE_SIZE graded outcomes and only
+                # bumps the model version when the weights actually move.
+                result = await asyncio.to_thread(WeightAdjuster().run_cycle)
+                if result.adjusted:
+                    log.info("meta-learning retuned weights -> model v%s", result.new_version)
             log.info("universe warmer refreshed %s tickers", refreshed)
         except asyncio.CancelledError:
             raise

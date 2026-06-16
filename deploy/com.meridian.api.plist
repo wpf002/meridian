@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+      Meridian API as a durable macOS user agent.
+      RunAtLoad starts it at login; KeepAlive restarts it if it crashes or exits,
+      so the background warmer (live-data refresh, outcome grading, auto-retune)
+      keeps running even when nobody has the app open.
+
+      Install:   cp deploy/com.meridian.api.plist ~/Library/LaunchAgents/
+                 launchctl load -w ~/Library/LaunchAgents/com.meridian.api.plist
+      Uninstall: launchctl unload -w ~/Library/LaunchAgents/com.meridian.api.plist
+                 rm ~/Library/LaunchAgents/com.meridian.api.plist
+    -->
+    <key>Label</key>
+    <string>com.meridian.api</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/willfoti/Documents/GitHub/meridian/.venv/bin/python</string>
+        <string>-m</string>
+        <string>api</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/willfoti/Documents/GitHub/meridian</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Don't hammer-restart on a crash loop: wait 15s between relaunches. -->
+    <key>ThrottleInterval</key>
+    <integer>15</integer>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/willfoti/Documents/GitHub/meridian/logs/api.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/willfoti/Documents/GitHub/meridian/logs/api.err.log</string>
+</dict>
+</plist>
