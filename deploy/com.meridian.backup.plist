@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+      Daily off-site backup of the Railway-hosted Meridian DB to ~/meridian-backups.
+      Runs at 03:30 (catches up on next wake if the Mac was asleep).
+
+      The script must live OUTSIDE ~/Documents — macOS TCC blocks launchd agents
+      from running scripts in Documents/Desktop/Downloads ("Operation not
+      permitted"). Install a copy to ~/meridian-backups and point the agent there.
+
+      Install:   cp deploy/backup-railway-db.sh ~/meridian-backups/ && chmod +x ~/meridian-backups/backup-railway-db.sh
+                 cp deploy/com.meridian.backup.plist ~/Library/LaunchAgents/
+                 launchctl load -w ~/Library/LaunchAgents/com.meridian.backup.plist
+      Run now:   launchctl start com.meridian.backup
+      Uninstall: launchctl unload -w ~/Library/LaunchAgents/com.meridian.backup.plist
+                 rm ~/Library/LaunchAgents/com.meridian.backup.plist
+    -->
+    <key>Label</key>
+    <string>com.meridian.backup</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/willfoti/meridian-backups/backup-railway-db.sh</string>
+    </array>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>3</integer>
+        <key>Minute</key>
+        <integer>30</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/willfoti/meridian-backups/backup.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/willfoti/meridian-backups/backup.log</string>
+</dict>
+</plist>
