@@ -51,11 +51,19 @@ async def _warm_loop(app: FastAPI, interval: int):
     path. Force-refreshes on each pass (resetting TTLs); errors are logged and
     never crash the loop. Cancelled on shutdown.
     """
-    from config.settings import UNIVERSE_SCAN_LIMIT
+    from config.settings import UNIVERSE_SCAN_LIMIT, WARMER_IDLE_AFTER_SECONDS
 
     source = app.state.source
     while True:
         try:
+            # Cost control: if nobody has hit the API recently, don't re-score /
+            # re-bill the LLM — go dormant until traffic resumes.
+            idle_for = time.time() - getattr(app.state, "last_activity", 0)
+            if WARMER_IDLE_AFTER_SECONDS and idle_for > WARMER_IDLE_AFTER_SECONDS:
+                log.info("warmer idle for %ds — skipping refresh", int(idle_for))
+                await asyncio.sleep(interval)
+                continue
+
             tickers = AssetUniverse().tickers()
             if UNIVERSE_SCAN_LIMIT:
                 tickers = tickers[:UNIVERSE_SCAN_LIMIT]
@@ -96,6 +104,9 @@ async def lifespan(app: FastAPI):
     except RuntimeError:
         pass
     app.state.source, app.state.source_label = default_source(llm_client=llm)
+    # Seed activity so the warmer runs an initial pass on boot, then idles out if
+    # no real traffic arrives.
+    app.state.last_activity = time.time()
 
     # Start the background cache warmer when the live source supports it.
     app.state.warmer = None
@@ -125,6 +136,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def _track_activity(request, call_next):
+    # Health probes don't count as real usage, so they can't keep the warmer
+    # awake forever.
+    if request.url.path != "/api/health":
+        app.state.last_activity = time.time()
+    return await call_next(request)
 
 
 def _source():

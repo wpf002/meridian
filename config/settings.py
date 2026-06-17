@@ -71,15 +71,20 @@ OUTCOME_PERIOD_DAYS = int(os.getenv("OUTCOME_PERIOD_DAYS", "90"))
 AURORA_ENABLED = os.getenv("AURORA_ENABLED", "false").lower() in ("1", "true", "yes")
 AURORA_BASE_URL = os.getenv("AURORA_BASE_URL", "http://localhost:8000/api")
 # Cache LLM-scored sentiment per ticker (seconds) so browsing the dashboard
-# doesn't re-bill the model on every page load.
-SENTIMENT_CACHE_TTL = int(os.getenv("SENTIMENT_CACHE_TTL", "600"))
+# doesn't re-bill the model on every page load. Kept a little longer than the
+# warmer interval so the cache never lapses between refreshes.
+SENTIMENT_CACHE_TTL = int(os.getenv("SENTIMENT_CACHE_TTL", "2100"))
 # Cap how many universe tickers the universe-wide commands score (keeps live
 # AURORA pages fast + cheap). 0 = no cap.
 UNIVERSE_SCAN_LIMIT = int(os.getenv("UNIVERSE_SCAN_LIMIT", "12"))
 # How often (seconds) the API proactively re-scores the universe in the
 # background so the sentiment cache never goes cold and every page load gets the
 # fast warm path. Keep it under SENTIMENT_CACHE_TTL. 0 disables the warmer.
-UNIVERSE_REFRESH_SECONDS = int(os.getenv("UNIVERSE_REFRESH_SECONDS", "540"))
+UNIVERSE_REFRESH_SECONDS = int(os.getenv("UNIVERSE_REFRESH_SECONDS", "1800"))
+# Cost control: after this many seconds with no API traffic, the warmer goes
+# dormant (stops re-scoring / re-billing the LLM) until the next request wakes
+# it. 0 = always warm. The first page load after going idle is a cold scan.
+WARMER_IDLE_AFTER_SECONDS = int(os.getenv("WARMER_IDLE_AFTER_SECONDS", "1800"))
 # The API caches the assembled universe scan (used by recommend/portfolio/brief)
 # for this long so flipping between pages is instant instead of a fresh scan.
 UNIVERSE_RESULT_TTL = int(os.getenv("UNIVERSE_RESULT_TTL", "120"))
