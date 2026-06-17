@@ -11,8 +11,14 @@ htmlcov/
 # Environment
 .env
 
+# Node / frontend build
+node_modules/
+frontend/dist/
+
 # Local database
 db/*.db
+db/*.db-wal
+db/*.db-shm
 
 # Logs / processed data
 logs/

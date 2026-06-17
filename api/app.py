@@ -9,6 +9,7 @@ Run with:  python -m api          (or: uvicorn api.app:app --reload)
 Docs at:   http://localhost:8800/docs
 """
 
+import os
 import time
 import asyncio
 import logging
@@ -17,6 +18,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from core import bootstrap
 from modules.base import get_client
@@ -357,3 +359,21 @@ def alerts():
 def ack_alert(alert_id: str):
     AlertSystem().acknowledge(alert_id)
     return {"acknowledged": alert_id}
+
+
+# --- static frontend (production) ------------------------------------------
+# When the built frontend exists (it's baked into the container image), serve it
+# from the same origin as the API so the SPA's relative /api calls just work.
+# In local dev the dist folder is absent, so this is skipped and Vite serves the
+# UI on its own port. Registered last, so every /api/* route above wins.
+_DIST = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "dist"))
+
+if os.path.isdir(_DIST):
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def serve_spa(full_path: str):
+        if full_path.startswith("api/") or full_path.startswith("api"):
+            raise HTTPException(status_code=404, detail="Not found")
+        candidate = os.path.normpath(os.path.join(_DIST, full_path))
+        if full_path and candidate.startswith(_DIST) and os.path.isfile(candidate):
+            return FileResponse(candidate)           # real asset (js/css/svg/...)
+        return FileResponse(os.path.join(_DIST, "index.html"))  # SPA routes
