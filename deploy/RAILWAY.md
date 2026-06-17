@@ -23,7 +23,7 @@ same origin (so the SPA's relative `/api` calls work with no CORS/proxy).
    AURORA_ENABLED    = true
    AURORA_BASE_URL   = https://backend-production-4975.up.railway.app/api
    UNIVERSE_SCAN_LIMIT = 0
-   DB_PATH           = /app/db/meridian.db  # see volume below
+   DB_PATH           = /app/data/meridian.db  # on the volume — see below
    ```
    Optional: `SENTIMENT_MODEL=claude-haiku-4-5`, `OUTCOME_PERIOD_DAYS=90`,
    `UNIVERSE_REFRESH_SECONDS=540`.
@@ -31,9 +31,13 @@ same origin (so the SPA's relative `/api` calls work with no CORS/proxy).
 
 4. **Persist the database** (recommended)
    The container filesystem is wiped on each deploy, so the SQLite DB (track
-   record, model versions, alerts) would reset. Add a **Volume** mounted at
-   **`/app/db`** and keep `DB_PATH=/app/db/meridian.db`. Tables are created on
-   first boot; the volume keeps history across deploys.
+   record, model versions, alerts) would reset. Add a **Volume** and set
+   `DB_PATH` to a file on it. Mount the volume at **`/app/data`** (NOT `/app/db`)
+   and set `DB_PATH=/app/data/meridian.db`. Tables are created on first boot;
+   the volume keeps history across deploys.
+   ⚠️ Do not mount the volume at `/app/db` — that path holds `schema.sql` in the
+   image, and an empty volume would hide it and crash startup. Keep the DB in a
+   separate dir (`/app/data`).
 
 5. **Expose it**
    *Service → Settings → Networking → Generate Domain*. The app binds `$PORT`
