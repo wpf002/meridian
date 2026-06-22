@@ -45,6 +45,45 @@ A **Confidence** level (High/Medium/Low) reflects how much the four signals agre
 
 ## Architecture
 
+```mermaid
+flowchart LR
+    subgraph SRC["Live data · AURORA"]
+        direction TB
+        FRED["FRED — macro"]
+        ALP["Alpaca — prices"]
+        NEWS["News headlines"]
+        FRAG["Fragility — risk"]
+    end
+
+    NEWS --> LLM["Claude (Haiku)<br>news sentiment"]
+    FRED --> ING["AURORA ingestion"]
+    ALP --> ING
+    FRAG --> ING
+
+    subgraph ENG["Meridian engine"]
+        direction LR
+        HARM["Signal<br>Harmonizer"] --> SCORE["Scoring<br>(ACS 0–100)"]
+        SCORE --> PRIO["Priority"] --> DEC["Decision"] --> CLS["Classifier<br>(Tier)"] --> CONF["Confidence"]
+    end
+
+    ING --> HARM
+    LLM --> HARM
+    CONF --> DB[("SQLite<br>full lineage")]
+
+    DB --> API["FastAPI<br>(16 endpoints)"]
+    API --> UI["React console UI"]
+    API --> WARM["Idle-aware<br>warmer"]
+    WARM -.refresh.-> ING
+
+    subgraph LOOP["Self-improving loop"]
+        direction LR
+        REC["Record<br>daily calls"] --> GRADE["Grade after 90d<br>vs realized return"] --> TUNE["Retune weights<br>(≥20 outcomes)"] --> REG[("Model<br>registry")]
+    end
+
+    DB --> REC
+    REG -.active model.-> SCORE
+```
+
 **Engine (Python 3.12).** A stateless-per-run pipeline; every run gets a `run_id`
 and is fully audit-logged:
 
